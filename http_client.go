@@ -156,10 +156,11 @@ func (hc *DgHttpClient) doRequest(ctx *dgctx.DgContext, request *http.Request, h
 			request.Header[k] = []string{v}
 		}
 	}
-	return hc.DoRequest(ctx, request)
+	_, body, err := hc.DoRequest(ctx, request)
+	return body, err
 }
 
-func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) ([]byte, error) {
+func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (int, []byte, error) {
 	start := time.Now().UnixMilli()
 	if hc.UseMonitor {
 		monitor.HttpClientCounter(ctx.GetExtraValue(originalUrl).(string))
@@ -178,7 +179,7 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 	}
 	if err != nil {
 		dglogger.Infof(ctx, "call url: %s, cost: %d ms, err: %v", request.URL.String(), cost, err)
-		return nil, err
+		return http.StatusInternalServerError, nil, err
 	} else {
 		dglogger.Infof(ctx, "call url: %s, cost: %d ms", request.URL.String(), cost)
 	}
@@ -191,11 +192,11 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 	}(response.Body)
 
 	if response.StatusCode >= 400 {
-		return nil, errors.New("request fail: " + response.Status)
+		return response.StatusCode, nil, errors.New("request fail: " + response.Status)
 	}
 
 	data, err := io.ReadAll(response.Body)
-	return data, err
+	return response.StatusCode, data, err
 }
 
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
