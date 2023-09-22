@@ -163,7 +163,11 @@ func (hc *DgHttpClient) doRequest(ctx *dgctx.DgContext, request *http.Request, h
 func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (int, map[string][]string, []byte, error) {
 	start := time.Now().UnixMilli()
 	if hc.UseMonitor {
-		monitor.HttpClientCounter(ctx.GetExtraValue(originalUrl).(string))
+		if ctx.GetExtraValue(originalUrl) != nil {
+			monitor.HttpClientCounter(ctx.GetExtraValue(originalUrl).(string))
+		} else {
+			monitor.HttpClientCounter(request.URL.String())
+		}
 	}
 
 	response, err := hc.HttpClient.Do(request)
@@ -174,8 +178,11 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 		if err != nil {
 			e = "true"
 		}
-		monitor.HttpClientDuration(ctx.GetExtraValue(originalUrl).(string), e, cost)
-
+		if ctx.GetExtraValue(originalUrl) != nil {
+			monitor.HttpClientDuration(ctx.GetExtraValue(originalUrl).(string), e, cost)
+		} else {
+			monitor.HttpClientDuration(request.URL.String(), e, cost)
+		}
 	}
 	if err != nil {
 		dglogger.Infof(ctx, "call url: %s, cost: %d ms, err: %v", request.URL.String(), cost, err)
