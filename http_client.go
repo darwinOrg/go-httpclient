@@ -54,6 +54,9 @@ func DefaultHttpClient() *DgHttpClient {
 		HttpClient: &http.Client{
 			Transport: transport,
 			Timeout:   time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse
+			},
 		},
 		UseMonitor: userMonitor,
 	}
