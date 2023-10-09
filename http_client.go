@@ -25,7 +25,7 @@ const (
 	formUrlEncodedContentType = "application/x-www-form-urlencoded; charset=utf-8"
 )
 
-var DefaultTimeoutSeconds int64 = 5
+var DefaultTimeoutSeconds int64 = 30
 var DefaultIdleConnTimeoutSeconds int64 = 30
 var GlobalHttpClient = DefaultHttpClient()
 
@@ -200,6 +200,10 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 
 	if response.StatusCode >= 400 {
 		return response.StatusCode, response.Header, nil, errors.New("request fail: " + response.Status)
+	}
+
+	if response.StatusCode >= 300 {
+		return response.StatusCode, response.Header, nil, nil
 	}
 
 	data, err := io.ReadAll(response.Body)
