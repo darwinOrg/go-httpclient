@@ -1,6 +1,7 @@
 package dghttp
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"github.com/darwinOrg/go-monitor"
 	"golang.org/x/net/http2"
 	"io"
+	"net"
 	"net/http"
 	nu "net/url"
 	"os"
@@ -26,7 +28,6 @@ const (
 )
 
 var DefaultTimeoutSeconds int64 = 30
-var DefaultIdleConnTimeoutSeconds int64 = 30
 var GlobalHttpClient = DefaultHttpClient()
 
 type DgHttpClient struct {
@@ -35,15 +36,6 @@ type DgHttpClient struct {
 }
 
 func DefaultHttpClient() *DgHttpClient {
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		IdleConnTimeout: time.Duration(int64(time.Second) * DefaultIdleConnTimeoutSeconds),
-	}
-	err := http2.ConfigureTransport(transport)
-	if err != nil {
-		panic(err)
-	}
-
 	userMonitor := true
 	profile := dgsys.GetProfile()
 	if profile == "local" || profile == "" {
@@ -52,11 +44,18 @@ func DefaultHttpClient() *DgHttpClient {
 
 	return &DgHttpClient{
 		HttpClient: &http.Client{
-			Transport: transport,
-			Timeout:   time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+			Transport: &http2.Transport{
+				// So http2.Transport doesn't complain the URL scheme isn't 'https'
+				AllowHTTP: true,
+				// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
+				DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+					return net.Dial(network, addr)
+				},
+			},
 			CheckRedirect: func(req *http.Request, via []*http.Request) error {
 				return http.ErrUseLastResponse
 			},
+			Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
 		},
 		UseMonitor: userMonitor,
 	}
