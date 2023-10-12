@@ -27,7 +27,25 @@ const (
 	formUrlEncodedContentType = "application/x-www-form-urlencoded; charset=utf-8"
 )
 
-var DefaultTimeoutSeconds int64 = 30
+const (
+	DefaultTimeoutSeconds int64 = 30
+	UseHttp11                   = "use_http11"
+)
+
+var httpTransport = &http.Transport{
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	IdleConnTimeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+}
+
+var http2Transport = &http2.Transport{
+	// So http2.Transport doesn't complain the URL scheme isn't 'https'
+	AllowHTTP: true,
+	// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
+	DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+		return net.Dial(network, addr)
+	},
+}
+
 var GlobalHttpClient = DefaultHttpClient()
 
 type DgHttpClient struct {
@@ -36,27 +54,33 @@ type DgHttpClient struct {
 }
 
 func DefaultHttpClient() *DgHttpClient {
+	useHttp11, ok := os.LookupEnv(UseHttp11)
+
+	return NewHttpClient(ok && useHttp11 == "true")
+}
+
+func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	userMonitor := true
 	profile := dgsys.GetProfile()
 	if profile == "local" || profile == "" {
 		userMonitor = false
 	}
 
-	return &DgHttpClient{
-		HttpClient: &http.Client{
-			Transport: &http2.Transport{
-				// So http2.Transport doesn't complain the URL scheme isn't 'https'
-				AllowHTTP: true,
-				// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
-				DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-					return net.Dial(network, addr)
-				},
-			},
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return http.ErrUseLastResponse
-			},
-			Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+	httpClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
 		},
+		Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+	}
+
+	if useHttp11 {
+		httpClient.Transport = httpTransport
+	} else {
+		httpClient.Transport = http2Transport
+	}
+
+	return &DgHttpClient{
+		HttpClient: httpClient,
 		UseMonitor: userMonitor,
 	}
 }
