@@ -11,6 +11,7 @@ import (
 	dgsys "github.com/darwinOrg/go-common/sys"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"io"
 	"net"
@@ -74,8 +75,10 @@ func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	}
 
 	if useHttp11 {
+		logrus.Infof("http客户端：1.1")
 		httpClient.Transport = httpTransport
 	} else {
+		logrus.Infof("http客户端：2.0")
 		httpClient.Transport = http2Transport
 	}
 
