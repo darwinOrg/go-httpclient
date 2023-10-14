@@ -190,6 +190,31 @@ func (hc *DgHttpClient) doRequest(ctx *dgctx.DgContext, request *http.Request, h
 }
 
 func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (int, map[string][]string, []byte, error) {
+	response, err := hc.DoRequestRaw(ctx, request)
+	if err != nil {
+		return http.StatusInternalServerError, nil, nil, err
+	}
+
+	defer func(b io.ReadCloser) {
+		err := b.Close()
+		if err != nil {
+			dglogger.Errorf(ctx, "close response body error, url: %s, err: %v", request.URL.String(), err)
+		}
+	}(response.Body)
+
+	if response.StatusCode >= 400 {
+		return response.StatusCode, response.Header, nil, errors.New("request fail: " + response.Status)
+	}
+
+	if response.StatusCode >= 300 {
+		return response.StatusCode, response.Header, nil, nil
+	}
+
+	data, err := io.ReadAll(response.Body)
+	return response.StatusCode, response.Header, data, err
+}
+
+func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request) (*http.Response, error) {
 	start := time.Now().UnixMilli()
 	if hc.UseMonitor {
 		if ctx.GetExtraValue(originalUrl) != nil {
@@ -215,28 +240,12 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 	}
 	if err != nil {
 		dglogger.Infof(ctx, "call url: %s, cost: %d ms, err: %v", request.URL.String(), cost, err)
-		return http.StatusInternalServerError, nil, nil, err
+		return response, err
 	} else {
 		dglogger.Infof(ctx, "call url: %s, cost: %d ms", request.URL.String(), cost)
 	}
 
-	defer func(b io.ReadCloser) {
-		err := b.Close()
-		if err != nil {
-			dglogger.Errorf(ctx, "close response body error, url: %s, err: %v", request.URL.String(), err)
-		}
-	}(response.Body)
-
-	if response.StatusCode >= 400 {
-		return response.StatusCode, response.Header, nil, errors.New("request fail: " + response.Status)
-	}
-
-	if response.StatusCode >= 300 {
-		return response.StatusCode, response.Header, nil, nil
-	}
-
-	data, err := io.ReadAll(response.Body)
-	return response.StatusCode, response.Header, data, err
+	return response, err
 }
 
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
