@@ -68,9 +68,6 @@ func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	}
 
 	httpClient := &http.Client{
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
 		Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
 	}
 
