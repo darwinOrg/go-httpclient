@@ -47,6 +47,8 @@ var http2Transport = &http2.Transport{
 	},
 }
 
+var myEnv string
+
 var GlobalHttpClient = DefaultHttpClient()
 
 type DgHttpClient struct {
@@ -56,16 +58,18 @@ type DgHttpClient struct {
 
 func DefaultHttpClient() *DgHttpClient {
 	useHttp11, ok := os.LookupEnv(UseHttp11)
-
 	return NewHttpClient(ok && useHttp11 == "true")
 }
 
 func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	userMonitor := true
+
 	profile := dgsys.GetProfile()
 	if profile == "local" || profile == "" {
 		userMonitor = false
 	}
+
+	myEnv = profile
 
 	httpClient := &http.Client{
 		Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
@@ -177,6 +181,7 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 
 func (hc *DgHttpClient) doRequest(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) ([]byte, error) {
 	request.Header.Set(constants.TraceId, ctx.TraceId)
+	request.Header["profile"] = []string{myEnv}
 	if headers != nil && len(headers) > 0 {
 		for k, v := range headers {
 			request.Header[k] = []string{v}
