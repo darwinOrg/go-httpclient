@@ -29,27 +29,27 @@ const (
 )
 
 const (
-	DefaultTimeoutSeconds int64 = 30
-	UseHttp11                   = "use_http11"
+	DefaultTimeoutSeconds = 30
+	UseHttp11             = "use_http11"
 )
 
-var httpTransport = &http.Transport{
-	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	IdleConnTimeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
-}
+var (
+	httpTransport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		IdleConnTimeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+	}
 
-var http2Transport = &http2.Transport{
-	// So http2.Transport doesn't complain the URL scheme isn't 'https'
-	AllowHTTP: true,
-	// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
-	DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-		return net.Dial(network, addr)
-	},
-}
+	http2Transport = &http2.Transport{
+		// So http2.Transport doesn't complain the URL scheme isn't 'https'
+		AllowHTTP: true,
+		// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
+		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+			return net.Dial(network, addr)
+		},
+	}
 
-var myEnv string
-
-var GlobalHttpClient = DefaultHttpClient()
+	GlobalHttpClient = DefaultHttpClient()
+)
 
 type DgHttpClient struct {
 	HttpClient *http.Client
@@ -68,8 +68,6 @@ func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	if profile == "local" || profile == "" {
 		userMonitor = false
 	}
-
-	myEnv = profile
 
 	httpClient := &http.Client{
 		Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
@@ -180,8 +178,6 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 }
 
 func (hc *DgHttpClient) doRequest(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) ([]byte, error) {
-	request.Header.Set(constants.TraceId, ctx.TraceId)
-	request.Header["profile"] = []string{myEnv}
 	if headers != nil && len(headers) > 0 {
 		for k, v := range headers {
 			request.Header[k] = []string{v}
@@ -226,6 +222,8 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		}
 	}
 
+	request.Header[constants.TraceId] = []string{ctx.TraceId}
+	request.Header[constants.Profile] = []string{dgsys.GetProfile()}
 	response, err := hc.HttpClient.Do(request)
 
 	cost := time.Now().UnixMilli() - start
