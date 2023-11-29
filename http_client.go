@@ -11,6 +11,7 @@ import (
 	dgctx "github.com/darwinOrg/go-common/context"
 	"github.com/darwinOrg/go-common/result"
 	dgsys "github.com/darwinOrg/go-common/sys"
+	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
 	"github.com/sirupsen/logrus"
@@ -33,6 +34,7 @@ const (
 const (
 	DefaultTimeoutSeconds = 30
 	UseHttp11             = "use_http11"
+	httpClientKey         = "httpClient"
 )
 
 var (
@@ -264,7 +266,7 @@ func DoGetToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]st
 		return nil, err
 	}
 
-	return ConvertJsonToStruct[T](resp)
+	return utils.ConvertJsonBytesToBean[T](resp)
 }
 
 func DoPostJsonToResult[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*result.Result[T], error) {
@@ -276,33 +278,32 @@ func DoPostJsonToResultML[T any](ctx *dgctx.DgContext, url string, params any, h
 }
 
 func DoPostJsonToStruct[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*T, error) {
-	resp, err := GlobalHttpClient.DoPostJson(ctx, url, params, headers)
+	resp, err := GetHttpClient(ctx).DoPostJson(ctx, url, params, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	return ConvertJsonToStruct[T](resp)
+	return utils.ConvertJsonBytesToBean[T](resp)
 }
 
 func DoPostFormUrlEncodedToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*T, error) {
-	resp, err := GlobalHttpClient.DoPostFormUrlEncoded(ctx, url, params, headers)
+	resp, err := GetHttpClient(ctx).DoPostFormUrlEncoded(ctx, url, params, headers)
 	if err != nil {
 		return nil, err
 	}
 
-	return ConvertJsonToStruct[T](resp)
+	return utils.ConvertJsonBytesToBean[T](resp)
 }
 
-func ConvertJsonToStruct[T any](resp []byte) (*T, error) {
-	if len(resp) == 0 {
-		return nil, errors.New("empty response")
+func SetHttpClient(ctx *dgctx.DgContext, httpClient *DgHttpClient) {
+	ctx.SetExtraKeyValue(httpClientKey, httpClient)
+}
+
+func GetHttpClient(ctx *dgctx.DgContext) *DgHttpClient {
+	httpClient := ctx.GetExtraValue(httpClientKey)
+	if httpClient == nil {
+		return GlobalHttpClient
 	}
 
-	rt := new(T)
-	err := json.Unmarshal(resp, rt)
-	if err != nil {
-		return nil, err
-	}
-
-	return rt, nil
+	return httpClient.(*DgHttpClient)
 }
