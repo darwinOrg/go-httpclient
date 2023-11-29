@@ -122,7 +122,7 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, paramsBytes)
+	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
