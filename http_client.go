@@ -26,12 +26,12 @@ import (
 )
 
 const (
-	originalUrl               = "originalUrl"
-	jsonContentType           = "application/json; charset=utf-8"
-	formUrlEncodedContentType = "application/x-www-form-urlencoded; charset=utf-8"
-	DefaultTimeoutSeconds     = 30
-	UseHttp11                 = "use_http11"
-	httpClientKey             = "httpClient"
+	originalUrl                     = "originalUrl"
+	jsonContentType                 = "application/json; charset=utf-8"
+	formUrlEncodedContentType       = "application/x-www-form-urlencoded; charset=utf-8"
+	DefaultTimeoutSeconds     int64 = 30
+	UseHttp11                       = "use_http11"
+	httpClientKey                   = "httpClient"
 )
 
 var (
@@ -50,8 +50,8 @@ var (
 	}
 
 	GlobalHttpClient = DefaultHttpClient()
-	Client11         = NewHttpClient(true)
-	Client2          = NewHttpClient(false)
+	Client11         = NewHttpClient(true, DefaultTimeoutSeconds)
+	Client2          = NewHttpClient(false, DefaultTimeoutSeconds)
 )
 
 type DgHttpClient struct {
@@ -61,10 +61,10 @@ type DgHttpClient struct {
 
 func DefaultHttpClient() *DgHttpClient {
 	useHttp11, ok := os.LookupEnv(UseHttp11)
-	return NewHttpClient(ok && useHttp11 == "true")
+	return NewHttpClient(ok && useHttp11 == "true", DefaultTimeoutSeconds)
 }
 
-func NewHttpClient(useHttp11 bool) *DgHttpClient {
+func NewHttpClient(useHttp11 bool, timeoutSeconds int64) *DgHttpClient {
 	userMonitor := true
 
 	profile := dgsys.GetProfile()
@@ -73,7 +73,7 @@ func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	}
 
 	httpClient := &http.Client{
-		Timeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+		Timeout: time.Duration(int64(time.Second) * timeoutSeconds),
 	}
 
 	if useHttp11 {
