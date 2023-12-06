@@ -29,21 +29,18 @@ const (
 	originalUrl               = "originalUrl"
 	jsonContentType           = "application/json; charset=utf-8"
 	formUrlEncodedContentType = "application/x-www-form-urlencoded; charset=utf-8"
-)
-
-const (
-	DefaultTimeoutSeconds = 30
-	UseHttp11             = "use_http11"
-	httpClientKey         = "httpClient"
+	DefaultTimeoutSeconds     = 30
+	UseHttp11                 = "use_http11"
+	httpClientKey             = "httpClient"
 )
 
 var (
-	httpTransport = &http.Transport{
+	HttpTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		IdleConnTimeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
 	}
 
-	http2Transport = &http2.Transport{
+	Http2Transport = &http2.Transport{
 		// So http2.Transport doesn't complain the URL scheme isn't 'https'
 		AllowHTTP: true,
 		// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
@@ -79,10 +76,10 @@ func NewHttpClient(useHttp11 bool) *DgHttpClient {
 
 	if useHttp11 {
 		logrus.Infof("http客户端：1.1")
-		httpClient.Transport = httpTransport
+		httpClient.Transport = HttpTransport
 	} else {
 		logrus.Infof("http客户端：2.0")
-		httpClient.Transport = http2Transport
+		httpClient.Transport = Http2Transport
 	}
 
 	return &DgHttpClient{
