@@ -50,6 +50,8 @@ var (
 	}
 
 	GlobalHttpClient = DefaultHttpClient()
+	Client11         = NewHttpClient(true)
+	Client2          = NewHttpClient(false)
 )
 
 type DgHttpClient struct {
@@ -75,10 +77,10 @@ func NewHttpClient(useHttp11 bool) *DgHttpClient {
 	}
 
 	if useHttp11 {
-		logrus.Infof("http客户端：1.1")
+		logrus.Debug("http客户端：1.1")
 		httpClient.Transport = HttpTransport
 	} else {
-		logrus.Infof("http客户端：2.0")
+		logrus.Debug("http客户端：2.0")
 		httpClient.Transport = Http2Transport
 	}
 
