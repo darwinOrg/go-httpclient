@@ -14,7 +14,6 @@ import (
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/http2"
 	"io"
 	"net"
@@ -77,10 +76,8 @@ func NewHttpClient(useHttp11 bool, timeoutSeconds int64) *DgHttpClient {
 	}
 
 	if useHttp11 {
-		logrus.Debug("http客户端：1.1")
 		httpClient.Transport = HttpTransport
 	} else {
-		logrus.Debug("http客户端：2.0")
 		httpClient.Transport = Http2Transport
 	}
 
@@ -260,7 +257,7 @@ func DoGetToResultML[T any](ctx *dgctx.DgContext, url string, params map[string]
 }
 
 func DoGetToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*T, error) {
-	resp, err := GlobalHttpClient.DoGet(ctx, url, params, headers)
+	resp, err := GetHttpClient(ctx).DoGet(ctx, url, params, headers)
 	if err != nil {
 		return nil, err
 	}
