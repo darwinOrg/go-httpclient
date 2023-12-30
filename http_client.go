@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
 	"github.com/darwinOrg/go-common/result"
@@ -128,7 +127,7 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 		return nil, err
 	}
 	request.Header.Set("Content-Type", jsonContentType)
-	request.Header.Set("Content-Length", fmt.Sprintf("%d", len(paramsBytes)))
+	//request.Header.Set("Content-Length", fmt.Sprintf("%d", len(paramsBytes)))
 
 	return hc.doRequest(ctx, request, headers)
 }
