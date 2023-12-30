@@ -198,16 +198,16 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 			dglogger.Errorf(ctx, "close response body error, url: %s, err: %v", request.URL.String(), err)
 		}
 	}(response.Body)
+	data, err := io.ReadAll(response.Body)
 
 	if response.StatusCode >= 400 {
-		return response.StatusCode, response.Header, nil, errors.New("request fail: " + response.Status)
+		return response.StatusCode, response.Header, data, errors.New("request fail: " + response.Status)
 	}
 
 	if response.StatusCode >= 300 {
-		return response.StatusCode, response.Header, nil, nil
+		return response.StatusCode, response.Header, data, nil
 	}
 
-	data, err := io.ReadAll(response.Body)
 	return response.StatusCode, response.Header, data, err
 }
 
