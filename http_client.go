@@ -200,10 +200,6 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 	}(response.Body)
 	data, err := io.ReadAll(response.Body)
 
-	if response.StatusCode >= 400 {
-		return response.StatusCode, response.Header, data, errors.New("request fail: " + response.Status)
-	}
-
 	if response.StatusCode >= 300 {
 		return response.StatusCode, response.Header, data, nil
 	}
