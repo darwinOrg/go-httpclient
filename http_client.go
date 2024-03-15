@@ -19,6 +19,7 @@ import (
 	"net/http"
 	nu "net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -219,6 +220,12 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 
 	request.Header[constants.TraceId] = []string{ctx.TraceId}
 	request.Header[constants.Profile] = []string{dgsys.GetProfile()}
+	request.Header[constants.UID] = []string{strconv.FormatInt(ctx.UserId, 10)}
+	request.Header[constants.OpId] = []string{strconv.FormatInt(ctx.OpId, 10)}
+	request.Header[constants.Roles] = []string{ctx.Roles}
+	request.Header[constants.BizTypes] = []string{strconv.Itoa(ctx.BizTypes)}
+	request.Header[constants.CompanyId] = []string{strconv.FormatInt(ctx.CompanyId, 10)}
+	request.Header[constants.Product] = []string{strconv.Itoa(ctx.Product)}
 	response, err := hc.HttpClient.Do(request)
 
 	cost := time.Now().UnixMilli() - start
