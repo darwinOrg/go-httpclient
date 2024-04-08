@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	dgcoll "github.com/darwinOrg/go-common/collection"
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
 	"github.com/darwinOrg/go-common/result"
@@ -226,6 +227,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	request.Header[constants.BizTypes] = []string{strconv.Itoa(ctx.BizTypes)}
 	request.Header[constants.CompanyId] = []string{strconv.FormatInt(ctx.CompanyId, 10)}
 	request.Header[constants.Product] = []string{strconv.Itoa(ctx.Product)}
+	request.Header[constants.DepartmentIds] = []string{dgcoll.JoinInts(ctx.DepartmentIds, ",")}
 	response, err := hc.HttpClient.Do(request)
 
 	cost := time.Now().UnixMilli() - start
