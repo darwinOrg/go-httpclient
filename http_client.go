@@ -223,7 +223,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		FillHeadersWithDgContext(ctx, request.Header)
 	}
 	if hc.IsPrintHeaders {
-		dglogger.Infof(ctx, "request headers: %v", request.Header)
+		dglogger.Infof(ctx, "httpclient request headers: %v", request.Header)
 	}
 
 	response, err := hc.HttpClient.Do(request)
