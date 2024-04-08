@@ -218,7 +218,9 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		}
 	}
 
-	FillHeadersWithDgContext(ctx, request.Header)
+	if hc.FillHeaderWithDgContext {
+		FillHeadersWithDgContext(ctx, request.Header)
+	}
 	response, err := hc.HttpClient.Do(request)
 
 	cost := time.Now().UnixMilli() - start
