@@ -55,11 +55,12 @@ type DgHttpClient struct {
 	HttpClient              *http.Client
 	UseMonitor              bool
 	FillHeaderWithDgContext bool
+	IsPrintHeaders          bool
 }
 
 func DefaultHttpClient() *DgHttpClient {
-	useHttp11, ok := os.LookupEnv(UseHttp11)
-	return NewHttpClient(ok && useHttp11 == "true", DefaultTimeoutSeconds)
+	useHttp11 := os.Getenv(UseHttp11)
+	return NewHttpClient(useHttp11 == "true", DefaultTimeoutSeconds)
 }
 
 func NewHttpClient(useHttp11 bool, timeoutSeconds int64) *DgHttpClient {
@@ -221,6 +222,10 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	if hc.FillHeaderWithDgContext {
 		FillHeadersWithDgContext(ctx, request.Header)
 	}
+	if hc.IsPrintHeaders {
+		dglogger.Infof(ctx, "request headers: %v", request.Header)
+	}
+
 	response, err := hc.HttpClient.Do(request)
 
 	cost := time.Now().UnixMilli() - start
