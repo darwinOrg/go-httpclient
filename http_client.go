@@ -46,46 +46,31 @@ var (
 		},
 	}
 
+	Client11         = NewHttpClient(HttpTransport, DefaultTimeoutSeconds)
+	Client2          = NewHttpClient(Http2Transport, DefaultTimeoutSeconds)
 	GlobalHttpClient = DefaultHttpClient()
-	Client11         = NewHttpClient(true, DefaultTimeoutSeconds)
-	Client2          = NewHttpClient(false, DefaultTimeoutSeconds)
 )
 
 type DgHttpClient struct {
 	HttpClient              *http.Client
 	UseMonitor              bool
 	FillHeaderWithDgContext bool
-	IsPrintHeaders          bool
+	PrintHeader             bool
 }
 
 func DefaultHttpClient() *DgHttpClient {
-	useHttp11 := os.Getenv(UseHttp11)
-	return NewHttpClient(useHttp11 == "true", DefaultTimeoutSeconds)
+	return utils.IfReturn(os.Getenv(UseHttp11) == "true", Client11, Client2)
 }
 
-func NewHttpClient(useHttp11 bool, timeoutSeconds int64) *DgHttpClient {
-	userMonitor := true
-
-	profile := dgsys.GetProfile()
-	if profile == "local" || profile == "" {
-		userMonitor = false
-	}
-
-	httpClient := &http.Client{
-		Timeout: time.Duration(int64(time.Second) * timeoutSeconds),
-	}
-
-	if useHttp11 {
-		httpClient.Transport = HttpTransport
-	} else {
-		httpClient.Transport = Http2Transport
-	}
-
+func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttpClient {
 	return &DgHttpClient{
-		HttpClient:              httpClient,
-		UseMonitor:              userMonitor,
+		HttpClient: &http.Client{
+			Transport: roundTripper,
+			Timeout:   time.Duration(int64(time.Second) * timeoutSeconds),
+		},
+		UseMonitor:              utils.IfReturn(dgsys.IsQa() || dgsys.IsProd(), true, false),
 		FillHeaderWithDgContext: true,
-		IsPrintHeaders:          true,
+		PrintHeader:             true,
 	}
 }
 
@@ -223,7 +208,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	if hc.FillHeaderWithDgContext {
 		FillHeadersWithDgContext(ctx, request.Header)
 	}
-	if hc.IsPrintHeaders {
+	if hc.PrintHeader {
 		dglogger.Infof(ctx, "httpclient request headers: %v", request.Header)
 	}
 
