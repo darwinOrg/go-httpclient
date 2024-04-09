@@ -85,6 +85,7 @@ func NewHttpClient(useHttp11 bool, timeoutSeconds int64) *DgHttpClient {
 		HttpClient:              httpClient,
 		UseMonitor:              userMonitor,
 		FillHeaderWithDgContext: true,
+		IsPrintHeaders:          true,
 	}
 }
 
