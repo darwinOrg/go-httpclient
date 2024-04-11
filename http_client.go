@@ -68,7 +68,7 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 			Transport: roundTripper,
 			Timeout:   time.Duration(int64(time.Second) * timeoutSeconds),
 		},
-		UseMonitor:              utils.IfReturn(dgsys.IsQa() || dgsys.IsProd(), true, false),
+		UseMonitor:              dgsys.IsQa() || dgsys.IsProd(),
 		FillHeaderWithDgContext: true,
 		PrintHeader:             true,
 	}
