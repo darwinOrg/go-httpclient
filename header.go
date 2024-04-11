@@ -47,6 +47,9 @@ func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {
 	if ctx.Product > 0 {
 		header[constants.Product] = []string{strconv.Itoa(ctx.Product)}
 	}
+	if len(ctx.Products) > 0 {
+		header[constants.Products] = []string{dgcoll.JoinInts(ctx.Products, ",")}
+	}
 	if len(ctx.DepartmentIds) > 0 {
 		header[constants.DepartmentIds] = []string{dgcoll.JoinInts(ctx.DepartmentIds, ",")}
 	}
