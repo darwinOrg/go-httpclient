@@ -186,13 +186,17 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 			dglogger.Errorf(ctx, "close response body error, url: %s, err: %v", request.URL.String(), err)
 		}
 	}(response.Body)
-	data, err := io.ReadAll(response.Body)
+	var data []byte
+
+	if response.StatusCode == http.StatusOK {
+		data, err = io.ReadAll(response.Body)
+	}
 
 	if response.StatusCode >= http.StatusBadRequest {
 		dglogger.Errorf(ctx, "request fail, url: %s, status code: %d", request.URL.String(), response.StatusCode)
 	}
 
-	if response.StatusCode >= 300 {
+	if response.StatusCode >= http.StatusMultipleChoices {
 		return response.StatusCode, response.Header, data, nil
 	}
 
@@ -294,4 +298,27 @@ func GetHttpClient(ctx *dgctx.DgContext) *DgHttpClient {
 	}
 
 	return httpClient.(*DgHttpClient)
+}
+
+func ConvertResponse2Struct[T any](resp *http.Response) (*T, error) {
+	bs, err := ReadResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+	if len(bs) == 0 {
+		return nil, nil
+	}
+
+	return utils.ConvertJsonBytesToBean[T](bs)
+}
+
+func ReadResponse(resp *http.Response) ([]byte, error) {
+	if resp == nil {
+		return nil, nil
+	}
+	if resp.Body == nil {
+		return nil, nil
+	}
+	defer resp.Body.Close()
+	return io.ReadAll(resp.Body)
 }
