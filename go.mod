@@ -3,8 +3,8 @@ module github.com/darwinOrg/go-httpclient
 go 1.19
 
 require (
-	github.com/darwinOrg/go-common v0.1.29
-	github.com/darwinOrg/go-logger v0.0.5
+	github.com/darwinOrg/go-common v0.1.40
+	github.com/darwinOrg/go-logger v0.0.6
 	github.com/darwinOrg/go-monitor v0.0.3
 	golang.org/x/net v0.24.0
 )
