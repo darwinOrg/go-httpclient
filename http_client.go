@@ -68,7 +68,7 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 			Transport: roundTripper,
 			Timeout:   time.Duration(int64(time.Second) * timeoutSeconds),
 		},
-		UseMonitor:              dgsys.IsQa() || dgsys.IsProd(),
+		UseMonitor:              dgsys.IsFormalProfile(),
 		FillHeaderWithDgContext: true,
 		PrintHeader:             true,
 	}
@@ -82,11 +82,7 @@ func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[strin
 			for k, v := range params {
 				vs.Add(k, v)
 			}
-			if strings.Contains(url, "?") {
-				url += "&"
-			} else {
-				url += "?"
-			}
+			url += utils.IfReturn(strings.Contains(url, "?"), "&", "?")
 			url += vs.Encode()
 		}
 	}
