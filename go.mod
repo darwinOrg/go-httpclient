@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/darwinOrg/go-common v0.1.58
 	github.com/darwinOrg/go-logger v0.0.7
-	github.com/darwinOrg/go-monitor v0.0.3
-	golang.org/x/net v0.24.0
+	github.com/darwinOrg/go-monitor v0.0.4
+	golang.org/x/net v0.27.0
 )
 
 require (
@@ -23,6 +23,6 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 )
