@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	dgctx "github.com/darwinOrg/go-common/context"
 	"github.com/darwinOrg/go-common/result"
@@ -98,7 +97,7 @@ func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[strin
 
 func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any, headers map[string]string) ([]byte, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := dglogger.Json(params)
 	if err != nil {
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
