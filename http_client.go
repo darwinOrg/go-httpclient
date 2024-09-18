@@ -31,11 +31,6 @@ const (
 )
 
 var (
-	andCharUnicodeBytes = []byte("\\u0026")
-	andCharRawBytes     = []byte("&")
-)
-
-var (
 	HttpTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		IdleConnTimeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
@@ -107,7 +102,6 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	paramsBytes = bytes.ReplaceAll(paramsBytes, andCharUnicodeBytes, andCharRawBytes)
 	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
