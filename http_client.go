@@ -199,7 +199,7 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 }
 
 func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request) (*http.Response, error) {
-	start := time.Now().UnixMilli()
+	start := time.Now()
 	if hc.UseMonitor {
 		if ctx.GetExtraValue(originalUrl) != nil {
 			monitor.HttpClientCounter(ctx.GetExtraValue(originalUrl).(string))
@@ -217,23 +217,23 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 
 	response, err := hc.HttpClient.Do(request)
 
-	cost := time.Now().UnixMilli() - start
+	cost := time.Since(start)
 	if hc.UseMonitor {
 		e := "false"
 		if err != nil {
 			e = "true"
 		}
 		if ctx.GetExtraValue(originalUrl) != nil {
-			monitor.HttpClientDuration(ctx.GetExtraValue(originalUrl).(string), e, cost)
+			monitor.HttpClientDuration(ctx.GetExtraValue(originalUrl).(string), e, cost.Milliseconds())
 		} else {
-			monitor.HttpClientDuration(request.URL.String(), e, cost)
+			monitor.HttpClientDuration(request.URL.String(), e, cost.Milliseconds())
 		}
 	}
 	if err != nil {
-		dglogger.Infof(ctx, "call url: %s, cost: %d ms, err: %v", request.URL.String(), cost, err)
+		dglogger.Infof(ctx, "call url: %s, cost: %v err: %v", request.URL.String(), cost, err)
 		return response, err
 	} else {
-		dglogger.Infof(ctx, "call url: %s, cost: %d ms", request.URL.String(), cost)
+		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
 	}
 
 	return response, err
