@@ -25,15 +25,15 @@ const (
 	originalUrl                     = "originalUrl"
 	jsonContentType                 = "application/json; charset=utf-8"
 	formUrlEncodedContentType       = "application/x-www-form-urlencoded; charset=utf-8"
-	DefaultTimeoutSeconds     int64 = 30
-	UseHttp11                       = "use_http11"
+	defaultTimeoutSeconds     int64 = 300
+	useHttp11                       = "use_http11"
 	httpClientKey                   = "httpClient"
 )
 
 var (
 	HttpTransport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		IdleConnTimeout: time.Duration(int64(time.Second) * DefaultTimeoutSeconds),
+		IdleConnTimeout: time.Duration(int64(time.Second) * defaultTimeoutSeconds),
 	}
 
 	Http2Transport = &http2.Transport{
@@ -45,8 +45,8 @@ var (
 		},
 	}
 
-	Client11         = NewHttpClient(HttpTransport, DefaultTimeoutSeconds)
-	Client2          = NewHttpClient(Http2Transport, DefaultTimeoutSeconds)
+	Client11         = NewHttpClient(HttpTransport, defaultTimeoutSeconds)
+	Client2          = NewHttpClient(Http2Transport, defaultTimeoutSeconds)
 	GlobalHttpClient = DefaultHttpClient()
 )
 
@@ -58,7 +58,7 @@ type DgHttpClient struct {
 }
 
 func DefaultHttpClient() *DgHttpClient {
-	return utils.IfReturn(os.Getenv(UseHttp11) == "true", Client11, Client2)
+	return utils.IfReturn(os.Getenv(useHttp11) == "true", Client11, Client2)
 }
 
 func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttpClient {
