@@ -54,3 +54,17 @@ func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {
 		header[constants.DepartmentIds] = []string{dgcoll.JoinInts(ctx.DepartmentIds, ",")}
 	}
 }
+
+func WriteHeaders(request *http.Request, headers map[string]string) {
+	if headers != nil && len(headers) > 0 {
+		for k, v := range headers {
+			request.Header[k] = []string{v}
+		}
+	}
+}
+
+func WriteSseHeaders(request *http.Request) {
+	request.Header.Set("Accept", "text/event-stream")
+	request.Header.Set("Cache-Control", "no-cache")
+	request.Header.Set("Connection", "keep-alive")
+}
