@@ -184,27 +184,7 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 		return http.StatusInternalServerError, nil, nil, err
 	}
 
-	defer func(b io.ReadCloser) {
-		err := b.Close()
-		if err != nil {
-			dglogger.Errorf(ctx, "close response body error, url: %s, err: %v", request.URL.String(), err)
-		}
-	}(response.Body)
-	var data []byte
-
-	if response.StatusCode == http.StatusOK {
-		data, err = io.ReadAll(response.Body)
-	}
-
-	if response.StatusCode >= http.StatusBadRequest {
-		dglogger.Errorf(ctx, "request fail, url: %s, status code: %d", request.URL.String(), response.StatusCode)
-	}
-
-	if response.StatusCode >= http.StatusMultipleChoices {
-		return response.StatusCode, response.Header, data, nil
-	}
-
-	return response.StatusCode, response.Header, data, err
+	return ExtractResponse(ctx, response)
 }
 
 func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request) (*http.Response, error) {
@@ -254,12 +234,47 @@ func (hc *DgHttpClient) simpleRequest(ctx *dgctx.DgContext, request *http.Reques
 		return nil, err
 	}
 
-	return ReadResponse(resp)
+	_, _, body, err := ExtractResponse(ctx, resp)
+	return body, err
 }
 
 func (hc *DgHttpClient) requestWithHeaders(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) (*http.Response, error) {
 	FillHeaders(request, headers)
 	return hc.DoRequestRaw(ctx, request)
+}
+
+func FillHeaders(request *http.Request, headers map[string]string) {
+	if headers != nil && len(headers) > 0 {
+		for k, v := range headers {
+			request.Header[k] = []string{v}
+		}
+	}
+}
+
+func ExtractResponse(ctx *dgctx.DgContext, response *http.Response) (int, map[string][]string, []byte, error) {
+	if response.StatusCode >= http.StatusBadRequest {
+		dglogger.Errorf(ctx, "request fail, status code: %d", response.StatusCode)
+	}
+
+	data, err := ReadResponse(response)
+	if response.StatusCode >= http.StatusMultipleChoices {
+		err = nil
+	}
+
+	return response.StatusCode, response.Header, data, err
+}
+
+func ReadResponse(resp *http.Response) ([]byte, error) {
+	if resp == nil {
+		return nil, nil
+	}
+	if resp.Body == nil {
+		return nil, nil
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	return io.ReadAll(resp.Body)
 }
 
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
@@ -328,25 +343,4 @@ func ConvertResponse2Struct[T any](resp *http.Response) (*T, error) {
 	}
 
 	return utils.ConvertJsonBytesToBean[T](bs)
-}
-
-func FillHeaders(request *http.Request, headers map[string]string) {
-	if headers != nil && len(headers) > 0 {
-		for k, v := range headers {
-			request.Header[k] = []string{v}
-		}
-	}
-}
-
-func ReadResponse(resp *http.Response) ([]byte, error) {
-	if resp == nil {
-		return nil, nil
-	}
-	if resp.Body == nil {
-		return nil, nil
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-	return io.ReadAll(resp.Body)
 }
