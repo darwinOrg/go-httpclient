@@ -74,6 +74,15 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 }
 
 func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
+	resp, err := hc.DoGetRaw(ctx, url, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadResponse(resp)
+}
+
+func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
 	if len(params) > 0 {
 		if params != nil && len(params) > 0 {
@@ -92,10 +101,19 @@ func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[strin
 		return nil, err
 	}
 
-	return hc.doRequest(ctx, request, headers)
+	return hc.requestWithHeaders(ctx, request, headers)
 }
 
 func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any, headers map[string]string) ([]byte, error) {
+	resp, err := hc.DoPostJsonRaw(ctx, url, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadResponse(resp)
+}
+
+func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
 	paramsBytes, err := dglogger.Json(params)
 	if err != nil {
@@ -110,9 +128,8 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 		return nil, err
 	}
 	request.Header.Set("Content-Type", jsonContentType)
-	//request.Header.Set("Content-Length", fmt.Sprintf("%d", len(paramsBytes)))
 
-	return hc.doRequest(ctx, request, headers)
+	return hc.requestWithHeaders(ctx, request, headers)
 }
 
 func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
@@ -131,7 +148,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 	}
 	request.Header.Set("Content-Type", formUrlEncodedContentType)
 
-	return hc.doRequest(ctx, request, headers)
+	return hc.simpleRequest(ctx, request, headers)
 }
 
 func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method string, url string, filePath string) ([]byte, error) {
@@ -140,7 +157,9 @@ func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method s
 		dglogger.Errorf(ctx, "error opening file: %s", filePath)
 		return nil, errors.New("error opening file")
 	}
-	defer fh.Close()
+	defer func() {
+		_ = fh.Close()
+	}()
 
 	return hc.DoUploadBody(ctx, method, url, fh)
 }
@@ -156,17 +175,7 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 	}
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	return hc.doRequest(ctx, request, nil)
-}
-
-func (hc *DgHttpClient) doRequest(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) ([]byte, error) {
-	if headers != nil && len(headers) > 0 {
-		for k, v := range headers {
-			request.Header[k] = []string{v}
-		}
-	}
-	_, _, body, err := hc.DoRequest(ctx, request)
-	return body, err
+	return hc.simpleRequest(ctx, request, nil)
 }
 
 func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (int, map[string][]string, []byte, error) {
@@ -239,6 +248,20 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	return response, err
 }
 
+func (hc *DgHttpClient) simpleRequest(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) ([]byte, error) {
+	resp, err := hc.requestWithHeaders(ctx, request, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return ReadResponse(resp)
+}
+
+func (hc *DgHttpClient) requestWithHeaders(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) (*http.Response, error) {
+	FillHeaders(request, headers)
+	return hc.DoRequestRaw(ctx, request)
+}
+
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
 	return DoGetToStruct[result.Result[T]](ctx, url, params, headers)
 }
@@ -307,6 +330,14 @@ func ConvertResponse2Struct[T any](resp *http.Response) (*T, error) {
 	return utils.ConvertJsonBytesToBean[T](bs)
 }
 
+func FillHeaders(request *http.Request, headers map[string]string) {
+	if headers != nil && len(headers) > 0 {
+		for k, v := range headers {
+			request.Header[k] = []string{v}
+		}
+	}
+}
+
 func ReadResponse(resp *http.Response) ([]byte, error) {
 	if resp == nil {
 		return nil, nil
@@ -314,6 +345,8 @@ func ReadResponse(resp *http.Response) ([]byte, error) {
 	if resp.Body == nil {
 		return nil, nil
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	return io.ReadAll(resp.Body)
 }
