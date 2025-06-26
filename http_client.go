@@ -252,11 +252,15 @@ func FillHeaders(request *http.Request, headers map[string]string) {
 }
 
 func ExtractResponse(ctx *dgctx.DgContext, response *http.Response) (int, map[string][]string, []byte, error) {
+	data, err := ReadResponse(response)
+	if err != nil {
+		dglogger.Errorf(ctx, "read response error, url: %s, err: %v", response.Request.URL, err)
+	}
+
 	if response.StatusCode >= http.StatusBadRequest {
 		dglogger.Errorf(ctx, "request fail, url: %s，status code: %d", response.Request.URL, response.StatusCode)
 	}
 
-	data, err := ReadResponse(response)
 	if response.StatusCode >= http.StatusMultipleChoices {
 		err = nil
 	}
