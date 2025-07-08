@@ -55,6 +55,7 @@ type DgHttpClient struct {
 	UseMonitor              bool
 	FillHeaderWithDgContext bool
 	PrintHeader             bool
+	PrintLog                bool
 }
 
 func DefaultHttpClient() *DgHttpClient {
@@ -68,6 +69,7 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 			Timeout:   time.Duration(int64(time.Second) * timeoutSeconds),
 		},
 		UseMonitor:              dgsys.IsFormalProfile(),
+		PrintLog:                true,
 		FillHeaderWithDgContext: true,
 		PrintHeader:             true,
 	}
@@ -120,7 +122,9 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
+	if hc.PrintLog {
+		dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
+	}
 
 	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
@@ -139,7 +143,9 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		paramsArr = append(paramsArr, k+"="+v)
 	}
 	paramsStr := strings.Join(paramsArr, "&")
-	dglogger.Infof(ctx, "post request, url: %s, params: %s", url, paramsStr)
+	if hc.PrintLog {
+		dglogger.Infof(ctx, "post request, url: %s, params: %s", url, paramsStr)
+	}
 
 	request, err := http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
 	if err != nil {
@@ -219,9 +225,9 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		}
 	}
 	if err != nil {
-		dglogger.Infof(ctx, "call url: %s, cost: %v err: %v", request.URL.String(), cost, err)
+		dglogger.Errorf(ctx, "call url: %s, cost: %v err: %v", request.URL.String(), cost, err)
 		return response, err
-	} else {
+	} else if hc.PrintLog {
 		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
 	}
 
