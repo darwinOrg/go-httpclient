@@ -63,6 +63,10 @@ func DefaultHttpClient() *DgHttpClient {
 }
 
 func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttpClient {
+	if timeoutSeconds == 0 {
+		timeoutSeconds = defaultTimeoutSeconds
+	}
+
 	return &DgHttpClient{
 		HttpClient: &http.Client{
 			Transport: roundTripper,
@@ -122,7 +126,7 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	if hc.PrintLog {
+	if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 	}
 
@@ -143,7 +147,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		paramsArr = append(paramsArr, k+"="+v)
 	}
 	paramsStr := strings.Join(paramsArr, "&")
-	if hc.PrintLog {
+	if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "post request, url: %s, params: %s", url, paramsStr)
 	}
 
@@ -227,7 +231,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	if err != nil {
 		dglogger.Errorf(ctx, "call url: %s, cost: %v err: %v", request.URL.String(), cost, err)
 		return response, err
-	} else if hc.PrintLog {
+	} else if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
 	}
 
