@@ -17,10 +17,9 @@ var OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operat
 	return fmt.Sprintf("Call: %s %s", req.URL.String(), req.Method)
 })
 
-func SetSpanAttributesFromContext(ctx *dgctx.DgContext, rc context.Context) context.Context {
-	span := trace.SpanFromContext(rc)
-
+func SetSpanAttributesFromContext(ctx *dgctx.DgContext, rc context.Context, headers map[string]string) context.Context {
 	var attrs []attribute.KeyValue
+
 	profile := dgsys.GetProfile()
 	if profile != "" {
 		attrs = append(attrs, attribute.String(constants.Profile, profile))
@@ -59,7 +58,14 @@ func SetSpanAttributesFromContext(ctx *dgctx.DgContext, rc context.Context) cont
 		attrs = append(attrs, attribute.Int64Slice(constants.Products, ctx.DepartmentIds))
 	}
 
+	if len(headers) > 0 {
+		for k, v := range headers {
+			attrs = append(attrs, attribute.String(k, v))
+		}
+	}
+
 	if len(attrs) > 0 {
+		span := trace.SpanFromContext(rc)
 		span.SetAttributes(attrs...)
 	}
 
