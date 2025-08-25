@@ -108,7 +108,16 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		}
 	}
 
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	var (
+		request *http.Request
+		err     error
+	)
+
+	if ctx.GetInnerContext() != nil {
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
+	} else {
+		request, err = http.NewRequest(http.MethodGet, url, nil)
+	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -137,7 +146,12 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 		dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	var request *http.Request
+	if ctx.GetInnerContext() != nil {
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	} else {
+		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
@@ -158,7 +172,15 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		dglogger.Infof(ctx, "post request, url: %s, params: %s", url, paramsStr)
 	}
 
-	request, err := http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
+	var (
+		request *http.Request
+		err     error
+	)
+	if ctx.GetInnerContext() != nil {
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, strings.NewReader(paramsStr))
+	} else {
+		request, err = http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
+	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
@@ -185,7 +207,15 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 	ctx.SetExtraKeyValue(originalUrl, url)
 	dglogger.Infof(ctx, "upload, url: %s", url)
 
-	request, err := http.NewRequest(method, url, body)
+	var (
+		request *http.Request
+		err     error
+	)
+	if ctx.GetInnerContext() != nil {
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), method, url, body)
+	} else {
+		request, err = http.NewRequest(method, url, body)
+	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
