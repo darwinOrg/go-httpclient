@@ -1,12 +1,13 @@
 package dghttp
 
 import (
+	"net/http"
+	"strconv"
+
 	dgcoll "github.com/darwinOrg/go-common/collection"
 	"github.com/darwinOrg/go-common/constants"
 	dgctx "github.com/darwinOrg/go-common/context"
 	dgsys "github.com/darwinOrg/go-common/sys"
-	"net/http"
-	"strconv"
 )
 
 func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {

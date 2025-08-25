@@ -2,12 +2,13 @@ package dghttp
 
 import (
 	"bytes"
-	dgctx "github.com/darwinOrg/go-common/context"
-	"github.com/darwinOrg/go-common/utils"
-	dglogger "github.com/darwinOrg/go-logger"
 	"net/http"
 	nu "net/url"
 	"strings"
+
+	dgctx "github.com/darwinOrg/go-common/context"
+	"github.com/darwinOrg/go-common/utils"
+	dglogger "github.com/darwinOrg/go-logger"
 )
 
 func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {

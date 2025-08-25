@@ -1,10 +1,11 @@
 package dghttp
 
 import (
-	dgctx "github.com/darwinOrg/go-common/context"
-	dglogger "github.com/darwinOrg/go-logger"
 	"net/http"
 	"testing"
+
+	dgctx "github.com/darwinOrg/go-common/context"
+	dglogger "github.com/darwinOrg/go-logger"
 )
 
 func TestDgHttpClient_DoGet(t *testing.T) {
