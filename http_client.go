@@ -35,7 +35,7 @@ const (
 
 var (
 	OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
-		return fmt.Sprintf("%s: %s %s", operation, req.Method, req.URL.Path)
+		return fmt.Sprintf("Call: %s %s", req.URL.String(), req.Method)
 	})
 
 	HttpTransport = otelhttp.NewTransport(&http.Transport{
