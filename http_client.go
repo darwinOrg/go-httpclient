@@ -109,9 +109,9 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 	)
 
 	if ctx.GetInnerContext() != nil {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, ctx.GetInnerContext()), http.MethodGet, url, nil)
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, ctx.GetInnerContext()), http.MethodGet, url, nil)
 	} else {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, context.Background()), http.MethodGet, url, nil)
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, context.Background()), http.MethodGet, url, nil)
 	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
@@ -143,9 +143,9 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 
 	var request *http.Request
 	if ctx.GetInnerContext() != nil {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, ctx.GetInnerContext()), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, ctx.GetInnerContext()), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	} else {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, context.Background()), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, context.Background()), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
@@ -172,9 +172,9 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		err     error
 	)
 	if ctx.GetInnerContext() != nil {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, ctx.GetInnerContext()), http.MethodPost, url, strings.NewReader(paramsStr))
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, ctx.GetInnerContext()), http.MethodPost, url, strings.NewReader(paramsStr))
 	} else {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, context.Background()), http.MethodPost, url, strings.NewReader(paramsStr))
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, context.Background()), http.MethodPost, url, strings.NewReader(paramsStr))
 	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
@@ -207,9 +207,9 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		err     error
 	)
 	if ctx.GetInnerContext() != nil {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, ctx.GetInnerContext()), method, url, body)
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, ctx.GetInnerContext()), method, url, body)
 	} else {
-		request, err = http.NewRequestWithContext(ContextWithBaggage(ctx, context.Background()), method, url, body)
+		request, err = http.NewRequestWithContext(SetSpanAttributesFromContext(ctx, context.Background()), method, url, body)
 	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)

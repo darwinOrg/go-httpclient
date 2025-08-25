@@ -17,7 +17,7 @@ var OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operat
 	return fmt.Sprintf("Call: %s %s", req.URL.String(), req.Method)
 })
 
-func SetAttributesToContext(ctx *dgctx.DgContext, rc context.Context) context.Context {
+func SetSpanAttributesFromContext(ctx *dgctx.DgContext, rc context.Context) context.Context {
 	span := trace.SpanFromContext(rc)
 
 	var attrs []attribute.KeyValue
