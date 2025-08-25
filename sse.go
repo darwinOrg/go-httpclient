@@ -9,6 +9,7 @@ import (
 	dgctx "github.com/darwinOrg/go-common/context"
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
+	dgotel "github.com/darwinOrg/go-otel"
 )
 
 func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
@@ -24,11 +25,22 @@ func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[stri
 		}
 	}
 
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	var (
+		request *http.Request
+		err     error
+	)
+	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+		dgotel.SetSpanAttributesByDgContext(ctx)
+		dgotel.SetSpanAttributesByMap(ctx, headers)
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
+	} else {
+		request, err = http.NewRequest(http.MethodGet, url, nil)
+	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
 	}
+
 	WriteHeaders(request, headers)
 	WriteSseHeaders(request)
 
@@ -44,11 +56,19 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	}
 	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
-	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	var request *http.Request
+	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+		dgotel.SetSpanAttributesByDgContext(ctx)
+		dgotel.SetSpanAttributesByMap(ctx, headers)
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	} else {
+		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	}
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
+
 	request.Header.Set("Content-Type", jsonContentType)
 	WriteHeaders(request, headers)
 	WriteSseHeaders(request)

@@ -109,7 +109,6 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		request *http.Request
 		err     error
 	)
-
 	if hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
