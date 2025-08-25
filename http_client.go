@@ -34,30 +34,27 @@ const (
 )
 
 var (
-	HttpTransport = &http.Transport{
+	OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
+		return fmt.Sprintf("%s: %s %s", operation, req.Method, req.URL.Path)
+	})
+
+	HttpTransport = otelhttp.NewTransport(&http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		IdleConnTimeout: time.Duration(int64(time.Second) * defaultTimeoutSeconds),
-	}
+	}, OtelHttpSpanNameFormatterOption)
 
-	Http2Transport = &http2.Transport{
+	Http2Transport = otelhttp.NewTransport(&http2.Transport{
 		// So http2.Transport doesn't complain the URL scheme isn't 'https'
 		AllowHTTP: true,
 		// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
 		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
 			return net.Dial(network, addr)
 		},
-	}
+	}, OtelHttpSpanNameFormatterOption)
 
 	Client11         = NewHttpClient(HttpTransport, defaultTimeoutSeconds)
 	Client2          = NewHttpClient(Http2Transport, defaultTimeoutSeconds)
 	GlobalHttpClient = DefaultHttpClient()
-
-	OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
-		return fmt.Sprintf("%s: %s %s", operation, req.Method, req.URL.Path)
-	})
-	OtelClient11         = NewHttpClient(otelhttp.NewTransport(HttpTransport, OtelHttpSpanNameFormatterOption), defaultTimeoutSeconds)
-	OtelClient2          = NewHttpClient(otelhttp.NewTransport(Http2Transport, OtelHttpSpanNameFormatterOption), defaultTimeoutSeconds)
-	OtelGlobalHttpClient = DefaultOtelHttpClient()
 )
 
 type DgHttpClient struct {
@@ -70,10 +67,6 @@ type DgHttpClient struct {
 
 func DefaultHttpClient() *DgHttpClient {
 	return utils.IfReturn(os.Getenv(useHttp11) == "true", Client11, Client2)
-}
-
-func DefaultOtelHttpClient() *DgHttpClient {
-	return utils.IfReturn(os.Getenv(useHttp11) == "true", OtelClient11, OtelClient2)
 }
 
 func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttpClient {
