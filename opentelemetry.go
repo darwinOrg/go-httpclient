@@ -13,9 +13,19 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
+var DefaultOtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
 	return fmt.Sprintf("Call: %s %s", req.URL.String(), req.Method)
 })
+
+func NewOtelHttpTransport(rt http.RoundTripper) http.RoundTripper {
+	return otelhttp.NewTransport(rt, DefaultOtelHttpSpanNameFormatterOption)
+}
+
+func NewOtelHttpTransportWithServiceName(rt http.RoundTripper, serviceName string) http.RoundTripper {
+	return otelhttp.NewTransport(rt, otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
+		return fmt.Sprintf("%s: %s %s", serviceName, req.URL.Path, req.Method)
+	}))
+}
 
 func SetSpanAttributesFromContext(ctx *dgctx.DgContext, rc context.Context, headers map[string]string) context.Context {
 	var attrs []attribute.KeyValue

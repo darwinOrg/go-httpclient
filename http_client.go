@@ -19,7 +19,6 @@ import (
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"golang.org/x/net/http2"
 )
 
@@ -33,19 +32,19 @@ const (
 )
 
 var (
-	HttpTransport = otelhttp.NewTransport(&http.Transport{
+	HttpTransport = NewOtelHttpTransport(&http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		IdleConnTimeout: time.Duration(int64(time.Second) * defaultTimeoutSeconds),
-	}, OtelHttpSpanNameFormatterOption)
+	})
 
-	Http2Transport = otelhttp.NewTransport(&http2.Transport{
+	Http2Transport = NewOtelHttpTransport(&http2.Transport{
 		// So http2.Transport doesn't complain the URL scheme isn't 'https'
 		AllowHTTP: true,
 		// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
 		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
 			return net.Dial(network, addr)
 		},
-	}, OtelHttpSpanNameFormatterOption)
+	})
 
 	Client11         = NewHttpClient(HttpTransport, defaultTimeoutSeconds)
 	Client2          = NewHttpClient(Http2Transport, defaultTimeoutSeconds)
