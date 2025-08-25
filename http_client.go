@@ -5,13 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	dgctx "github.com/darwinOrg/go-common/context"
-	"github.com/darwinOrg/go-common/result"
-	dgsys "github.com/darwinOrg/go-common/sys"
-	"github.com/darwinOrg/go-common/utils"
-	dglogger "github.com/darwinOrg/go-logger"
-	"github.com/darwinOrg/go-monitor"
-	"golang.org/x/net/http2"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -19,6 +13,15 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	dgctx "github.com/darwinOrg/go-common/context"
+	"github.com/darwinOrg/go-common/result"
+	dgsys "github.com/darwinOrg/go-common/sys"
+	"github.com/darwinOrg/go-common/utils"
+	dglogger "github.com/darwinOrg/go-logger"
+	"github.com/darwinOrg/go-monitor"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"golang.org/x/net/http2"
 )
 
 const (
@@ -48,6 +51,13 @@ var (
 	Client11         = NewHttpClient(HttpTransport, defaultTimeoutSeconds)
 	Client2          = NewHttpClient(Http2Transport, defaultTimeoutSeconds)
 	GlobalHttpClient = DefaultHttpClient()
+
+	OtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
+		return fmt.Sprintf("%s: %s %s", operation, req.Method, req.URL.Path)
+	})
+	OtelClient11         = NewHttpClient(otelhttp.NewTransport(HttpTransport, OtelHttpSpanNameFormatterOption), defaultTimeoutSeconds)
+	OtelClient2          = NewHttpClient(otelhttp.NewTransport(Http2Transport, OtelHttpSpanNameFormatterOption), defaultTimeoutSeconds)
+	OtelGlobalHttpClient = DefaultOtelHttpClient()
 )
 
 type DgHttpClient struct {
@@ -60,6 +70,10 @@ type DgHttpClient struct {
 
 func DefaultHttpClient() *DgHttpClient {
 	return utils.IfReturn(os.Getenv(useHttp11) == "true", Client11, Client2)
+}
+
+func DefaultOtelHttpClient() *DgHttpClient {
+	return utils.IfReturn(os.Getenv(useHttp11) == "true", OtelClient11, OtelClient2)
 }
 
 func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttpClient {
