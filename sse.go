@@ -29,7 +29,7 @@ func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[stri
 		request *http.Request
 		err     error
 	)
-	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
@@ -57,7 +57,7 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
 	var request *http.Request
-	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))

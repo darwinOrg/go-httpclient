@@ -79,7 +79,6 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 		PrintLog:                true,
 		FillHeaderWithDgContext: true,
 		PrintHeader:             true,
-		EnableTracer:            true,
 	}
 }
 
@@ -109,7 +108,7 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		request *http.Request
 		err     error
 	)
-	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
@@ -145,7 +144,7 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 	}
 
 	var request *http.Request
-	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
@@ -176,7 +175,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		request *http.Request
 		err     error
 	)
-	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, strings.NewReader(paramsStr))
@@ -213,7 +212,7 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		request *http.Request
 		err     error
 	)
-	if hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), method, url, body)
 	} else {
