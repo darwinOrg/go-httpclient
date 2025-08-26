@@ -108,8 +108,8 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		request *http.Request
 		err     error
 	)
-	if dgotel.Tracer != nil && hc.EnableTracer {
-		c, span := dgotel.Tracer.Start(context.Background(), "http_client")
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
 		defer span.End()
 		dgotel.SetSpanAttributesByMap(span, params)
 		dgotel.SetSpanAttributesByMap(span, headers)
@@ -146,8 +146,8 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 	}
 
 	var request *http.Request
-	if dgotel.Tracer != nil && hc.EnableTracer {
-		c, span := dgotel.Tracer.Start(context.Background(), "http_client")
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
 		defer span.End()
 		dgotel.SetSpanAttributesByMap(span, map[string]string{"body": string(paramsBytes)})
 		dgotel.SetSpanAttributesByMap(span, headers)
@@ -179,8 +179,8 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		request *http.Request
 		err     error
 	)
-	if dgotel.Tracer != nil && hc.EnableTracer {
-		c, span := dgotel.Tracer.Start(context.Background(), "http_client")
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
 		defer span.End()
 		dgotel.SetSpanAttributesByMap(span, map[string]string{"body": paramsStr})
 		dgotel.SetSpanAttributesByMap(span, headers)
@@ -218,8 +218,8 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		request *http.Request
 		err     error
 	)
-	if dgotel.Tracer != nil && hc.EnableTracer {
-		c, span := dgotel.Tracer.Start(context.Background(), "http_client")
+	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
 		defer span.End()
 		request, err = http.NewRequestWithContext(c, method, url, body)
 	} else {
