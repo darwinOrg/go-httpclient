@@ -12,8 +12,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var DefaultOtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(operation string, req *http.Request) string {
-	return fmt.Sprintf("Call: %s%s %s", req.Host, req.URL.Path, req.Method)
+var DefaultOtelHttpSpanNameFormatterOption = otelhttp.WithSpanNameFormatter(func(_ string, req *http.Request) string {
+	return fmt.Sprintf("Call: %s://%s%s %s", req.URL.Scheme, req.URL.Host, req.URL.Path, req.Method)
 })
 
 func ExtractOtelAttributesFromResponse(response *http.Response) {
@@ -23,9 +23,7 @@ func ExtractOtelAttributesFromResponse(response *http.Response) {
 
 	if span := trace.SpanFromContext(response.Request.Context()); span.SpanContext().IsValid() {
 		attrs := ExtractOtelAttributesFromRequest(response.Request)
-		if len(attrs) > 0 {
-			span.SetAttributes(attrs...)
-		}
+		span.SetAttributes(attrs...)
 		span.SetAttributes(semconv.HTTPResponseContentLength(int(response.ContentLength)))
 	}
 }

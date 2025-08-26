@@ -6,7 +6,7 @@ require (
 	github.com/darwinOrg/go-common v0.2.7
 	github.com/darwinOrg/go-logger v0.0.14
 	github.com/darwinOrg/go-monitor v0.0.9
-	github.com/darwinOrg/go-otel v0.0.5
+	github.com/darwinOrg/go-otel v0.0.6
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.62.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/trace v1.37.0
