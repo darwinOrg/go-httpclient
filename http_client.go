@@ -247,7 +247,6 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	}
 
 	response, err := hc.HttpClient.Do(request)
-
 	cost := time.Since(start)
 	if hc.UseMonitor {
 		e := "false"
@@ -266,6 +265,8 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	} else if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
 	}
+
+	ExtractOtelAttributesFromResponse(response)
 
 	return response, err
 }
