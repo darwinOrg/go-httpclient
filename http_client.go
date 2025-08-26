@@ -110,6 +110,7 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 	)
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
+		dgotel.SetSpanAttributesByMap(ctx, params)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
 	} else {
@@ -146,6 +147,7 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 	var request *http.Request
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
+		dgotel.SetSpanAttributesByMap(ctx, map[string]string{"body": string(paramsBytes)})
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	} else {
@@ -177,6 +179,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 	)
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
 		dgotel.SetSpanAttributesByDgContext(ctx)
+		dgotel.SetSpanAttributesByMap(ctx, params)
 		dgotel.SetSpanAttributesByMap(ctx, headers)
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, strings.NewReader(paramsStr))
 	} else {
