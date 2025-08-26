@@ -2,6 +2,7 @@ package dghttp
 
 import (
 	"bytes"
+	"context"
 	"net/http"
 	nu "net/url"
 	"strings"
@@ -30,10 +31,11 @@ func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[stri
 		err     error
 	)
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
-		dgotel.SetSpanAttributesByDgContext(ctx)
-		dgotel.SetSpanAttributesByMap(ctx, params)
-		dgotel.SetSpanAttributesByMap(ctx, headers)
-		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
+		c, span := dgotel.Tracer.Start(context.Background(), "http_client")
+		defer span.End()
+		dgotel.SetSpanAttributesByMap(span, params)
+		dgotel.SetSpanAttributesByMap(span, headers)
+		request, err = http.NewRequestWithContext(c, http.MethodGet, url, nil)
 	} else {
 		request, err = http.NewRequest(http.MethodGet, url, nil)
 	}
@@ -59,10 +61,11 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 
 	var request *http.Request
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
-		dgotel.SetSpanAttributesByDgContext(ctx)
-		dgotel.SetSpanAttributesByMap(ctx, map[string]string{"body": string(paramsBytes)})
-		dgotel.SetSpanAttributesByMap(ctx, headers)
-		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+		c, span := dgotel.Tracer.Start(context.Background(), "http_client")
+		defer span.End()
+		dgotel.SetSpanAttributesByMap(span, map[string]string{"body": string(paramsBytes)})
+		dgotel.SetSpanAttributesByMap(span, headers)
+		request, err = http.NewRequestWithContext(c, http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	} else {
 		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	}
