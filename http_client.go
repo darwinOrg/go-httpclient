@@ -109,11 +109,7 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		err     error
 	)
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
-		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
-		defer span.End()
-		dgotel.SetSpanAttributesByMap(span, params)
-		dgotel.SetSpanAttributesByMap(span, headers)
-		request, err = http.NewRequestWithContext(c, http.MethodGet, url, nil)
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
 	} else {
 		request, err = http.NewRequest(http.MethodGet, url, nil)
 	}
@@ -147,11 +143,7 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 
 	var request *http.Request
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
-		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
-		defer span.End()
-		dgotel.SetSpanAttributesByMap(span, map[string]string{"body": string(paramsBytes)})
-		dgotel.SetSpanAttributesByMap(span, headers)
-		request, err = http.NewRequestWithContext(c, http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	} else {
 		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	}
@@ -180,11 +172,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		err     error
 	)
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
-		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
-		defer span.End()
-		dgotel.SetSpanAttributesByMap(span, map[string]string{"body": paramsStr})
-		dgotel.SetSpanAttributesByMap(span, headers)
-		request, err = http.NewRequestWithContext(c, http.MethodPost, url, strings.NewReader(paramsStr))
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, strings.NewReader(paramsStr))
 	} else {
 		request, err = http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
 	}
@@ -219,9 +207,7 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		err     error
 	)
 	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
-		c, span := dgotel.Tracer.Start(ctx.GetInnerContext(), "http_client")
-		defer span.End()
-		request, err = http.NewRequestWithContext(c, method, url, body)
+		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), method, url, body)
 	} else {
 		request, err = http.NewRequest(method, url, body)
 	}
