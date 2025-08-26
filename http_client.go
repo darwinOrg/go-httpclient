@@ -72,7 +72,7 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 
 	return &DgHttpClient{
 		HttpClient: &http.Client{
-			Transport: dgotel.NewOtelHttpTransport(roundTripper),
+			Transport: roundTripper,
 			Timeout:   time.Duration(int64(time.Second) * timeoutSeconds),
 		},
 		UseMonitor:              dgsys.IsFormalProfile(),
