@@ -23,15 +23,15 @@ func ExtractOtelAttributesFromResponse(response *http.Response) {
 
 	if span := trace.SpanFromContext(response.Request.Context()); span.SpanContext().IsValid() {
 		attrs := ExtractOtelAttributesFromRequest(response.Request)
-		span.SetAttributes(attrs...)
+		if len(attrs) > 0 {
+			span.SetAttributes(attrs...)
+		}
 		span.SetAttributes(semconv.HTTPResponseContentLength(int(response.ContentLength)))
 	}
 }
 
 func ExtractOtelAttributesFromRequest(req *http.Request) []attribute.KeyValue {
-	attrs := []attribute.KeyValue{
-		semconv.HTTPRequestContentLength(int(req.ContentLength)),
-	}
+	var attrs []attribute.KeyValue
 
 	if len(req.Header) > 0 {
 		for name, values := range req.Header {
