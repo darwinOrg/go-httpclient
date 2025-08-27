@@ -19,7 +19,6 @@ import (
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
-	dgotel "github.com/darwinOrg/go-otel"
 	"golang.org/x/net/http2"
 )
 
@@ -108,7 +107,7 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		request *http.Request
 		err     error
 	)
-	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if ctx.GetInnerContext() != nil {
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
 	} else {
 		request, err = http.NewRequest(http.MethodGet, url, nil)
@@ -142,7 +141,7 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 	}
 
 	var request *http.Request
-	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if ctx.GetInnerContext() != nil {
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	} else {
 		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
@@ -171,7 +170,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		request *http.Request
 		err     error
 	)
-	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if ctx.GetInnerContext() != nil {
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, strings.NewReader(paramsStr))
 	} else {
 		request, err = http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
@@ -206,7 +205,7 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		request *http.Request
 		err     error
 	)
-	if dgotel.Tracer != nil && hc.EnableTracer && ctx.GetInnerContext() != nil {
+	if ctx.GetInnerContext() != nil {
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), method, url, body)
 	} else {
 		request, err = http.NewRequest(method, url, body)
