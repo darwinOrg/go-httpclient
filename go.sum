@@ -12,8 +12,8 @@ github.com/darwinOrg/go-logger v0.0.14 h1:a30BkOXMzrJIBOO+x4bn4os6UFDLxGEQy8JB+2
 github.com/darwinOrg/go-logger v0.0.14/go.mod h1:a+8Gy5WaP1R6q3yEOAVCw/CjZJV+ExoNFDIYeqCPlx4=
 github.com/darwinOrg/go-monitor v0.0.9 h1:UKG3ci4MoWu4P/56XmXuUYbFyu9++mGzczNFOSZy5C4=
 github.com/darwinOrg/go-monitor v0.0.9/go.mod h1:03YvX/vKIObK4R85BVsUj/X5FZJ1+ZbFO00q9MLPdcg=
-github.com/darwinOrg/go-otel v0.0.11 h1:NoBEMPHeKKRhb7qlozJ7W0A/eMkaCP4KlApE0dOU7PE=
-github.com/darwinOrg/go-otel v0.0.11/go.mod h1:CGdzYR0oRMZA+0iJnB99VPKlgUKZFlUrP5ySCWXq7Yo=
+github.com/darwinOrg/go-otel v0.0.12 h1:nyeaZ6ZmC9AyQC2EbYXGkzEcgRUmrx+lP/SBAQCXT3M=
+github.com/darwinOrg/go-otel v0.0.12/go.mod h1:CGdzYR0oRMZA+0iJnB99VPKlgUKZFlUrP5ySCWXq7Yo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
