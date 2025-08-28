@@ -58,6 +58,7 @@ type DgHttpClient struct {
 	PrintHeader             bool
 	PrintLog                bool
 	EnableTracer            bool
+	ResponseCallback        func(ctx *dgctx.DgContext, response *http.Response)
 }
 
 func DefaultHttpClient() *DgHttpClient {
@@ -263,6 +264,10 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		return response, err
 	} else if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
+	}
+
+	if hc.ResponseCallback != nil {
+		hc.ResponseCallback(ctx, response)
 	}
 
 	return response, err
