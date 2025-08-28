@@ -57,7 +57,6 @@ type DgHttpClient struct {
 	FillHeaderWithDgContext bool
 	PrintHeader             bool
 	PrintLog                bool
-	EnableTracer            bool
 	ResponseCallback        func(ctx *dgctx.DgContext, response *http.Response)
 }
 
