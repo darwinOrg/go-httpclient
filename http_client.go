@@ -265,8 +265,6 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
 	}
 
-	ExtractOtelAttributesFromResponse(response)
-
 	return response, err
 }
 
