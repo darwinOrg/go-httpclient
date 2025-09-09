@@ -54,6 +54,12 @@ func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {
 	if len(ctx.DepartmentIds) > 0 {
 		header[constants.DepartmentIds] = []string{dgcoll.JoinInts(ctx.DepartmentIds, ",")}
 	}
+	if ctx.Source != "" {
+		header[constants.Source] = []string{ctx.Source}
+	}
+	if ctx.Since != 0 {
+		header[constants.Since] = []string{strconv.FormatInt(ctx.Since, 10)}
+	}
 }
 
 func WriteHeaders(request *http.Request, headers map[string]string) {

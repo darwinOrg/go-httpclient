@@ -3,7 +3,7 @@ module github.com/darwinOrg/go-httpclient
 go 1.23.1
 
 require (
-	github.com/darwinOrg/go-common v0.2.9
+	github.com/darwinOrg/go-common v0.2.12
 	github.com/darwinOrg/go-logger v0.0.15
 	github.com/darwinOrg/go-monitor v0.0.11
 	golang.org/x/net v0.43.0
