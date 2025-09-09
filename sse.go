@@ -28,7 +28,7 @@ func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[stri
 		request *http.Request
 		err     error
 	)
-	if ctx.GetInnerContext() != nil {
+	if ctx.GetInnerContext() != nil && ctx.GetInnerContext().Err() == nil {
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
 	} else {
 		request, err = http.NewRequest(http.MethodGet, url, nil)
@@ -54,7 +54,7 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
 	var request *http.Request
-	if ctx.GetInnerContext() != nil {
+	if ctx.GetInnerContext() != nil && ctx.GetInnerContext().Err() == nil {
 		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	} else {
 		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
