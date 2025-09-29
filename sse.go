@@ -28,11 +28,7 @@ func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[stri
 		request *http.Request
 		err     error
 	)
-	if ctx.GetInnerContext() != nil && ctx.GetInnerContext().Err() == nil {
-		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodGet, url, nil)
-	} else {
-		request, err = http.NewRequest(http.MethodGet, url, nil)
-	}
+	request, err = http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -54,11 +50,7 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
 	var request *http.Request
-	if ctx.GetInnerContext() != nil && ctx.GetInnerContext().Err() == nil {
-		request, err = http.NewRequestWithContext(ctx.GetInnerContext(), http.MethodPost, url, bytes.NewBuffer(paramsBytes))
-	} else {
-		request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
-	}
+	request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
