@@ -2,6 +2,7 @@ package dghttp
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	nu "net/url"
 	"strings"
@@ -42,7 +43,7 @@ func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[stri
 
 func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
-	paramsBytes, err := dglogger.Json(params)
+	paramsBytes, err := json.Marshal(params)
 	if err != nil {
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
