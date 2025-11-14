@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -127,7 +128,7 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 
 func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
-	paramsBytes, err := dglogger.Json(params)
+	paramsBytes, err := json.Marshal(params)
 	if err != nil {
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
