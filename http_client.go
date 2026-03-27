@@ -195,6 +195,18 @@ func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params an
 	return hc.requestWithHeaders(ctx, request, headers)
 }
 
+func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers map[string]string) (*http.Response, error) {
+	ctx.SetExtraKeyValue(originalUrl, url)
+
+	request, err := http.NewRequest(http.MethodDelete, url, nil)
+	if err != nil {
+		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
+		return nil, err
+	}
+
+	return hc.requestWithHeaders(ctx, request, headers)
+}
+
 func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method string, url string, filePath string) ([]byte, error) {
 	fh, err := os.Open(filePath)
 	if err != nil {
