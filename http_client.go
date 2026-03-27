@@ -173,6 +173,28 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 	return hc.simpleRequest(ctx, request, headers)
 }
 
+func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
+	ctx.SetExtraKeyValue(originalUrl, url)
+	paramsBytes, err := json.Marshal(params)
+	if err != nil {
+		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
+		return nil, err
+	}
+	if hc.PrintLog && !ctx.NotPrintLog {
+		dglogger.Infof(ctx, "put request, url: %s, params: %v", url, string(paramsBytes))
+	}
+
+	var request *http.Request
+	request, err = http.NewRequest(http.MethodPut, url, bytes.NewBuffer(paramsBytes))
+	if err != nil {
+		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
+		return nil, err
+	}
+	request.Header.Set("Content-Type", jsonContentType)
+
+	return hc.requestWithHeaders(ctx, request, headers)
+}
+
 func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method string, url string, filePath string) ([]byte, error) {
 	fh, err := os.Open(filePath)
 	if err != nil {
