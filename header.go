@@ -60,6 +60,9 @@ func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {
 	if ctx.Since != 0 {
 		header[constants.Since] = []string{strconv.FormatInt(ctx.Since, 10)}
 	}
+	if ctx.OutUserId != "" {
+		header[constants.OutUserId] = []string{ctx.OutUserId}
+	}
 }
 
 func WriteHeaders(request *http.Request, headers map[string]string) {
