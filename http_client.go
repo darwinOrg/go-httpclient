@@ -128,11 +128,20 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 
 func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
-	paramsBytes, err := json.Marshal(params)
-	if err != nil {
-		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
-		return nil, err
+	var (
+		paramsBytes []byte
+		err         error
+	)
+	if params != nil {
+		paramsBytes, err = json.Marshal(params)
+		if err != nil {
+			dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
+			return nil, err
+		}
+	} else {
+		paramsBytes = []byte("{}")
 	}
+
 	if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 	}
@@ -175,11 +184,20 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 
 func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
-	paramsBytes, err := json.Marshal(params)
-	if err != nil {
-		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
-		return nil, err
+	var (
+		paramsBytes []byte
+		err         error
+	)
+	if params != nil {
+		paramsBytes, err = json.Marshal(params)
+		if err != nil {
+			dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
+			return nil, err
+		}
+	} else {
+		paramsBytes = []byte("{}")
 	}
+
 	if hc.PrintLog && !ctx.NotPrintLog {
 		dglogger.Infof(ctx, "put request, url: %s, params: %v", url, string(paramsBytes))
 	}
