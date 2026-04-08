@@ -264,6 +264,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		dglogger.Infof(ctx, "httpclient request headers: %v", request.Header)
 	}
 
+	request.Header.Set("User-Agent", "")
 	response, err := hc.HttpClient.Do(request)
 	cost := time.Since(start)
 	if hc.UseMonitor {
