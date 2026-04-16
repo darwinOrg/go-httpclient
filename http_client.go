@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"mime/multipart"
 	"net"
 	"net/http"
 	nu "net/url"
@@ -226,16 +227,43 @@ func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers ma
 }
 
 func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, url, filePath string, headers map[string]string) ([]byte, error) {
-	fh, err := os.Open(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		dglogger.Errorf(ctx, "error opening file: %s", filePath)
 		return nil, errors.New("error opening file")
 	}
 	defer func() {
-		_ = fh.Close()
+		_ = file.Close()
 	}()
 
-	return hc.DoUploadBody(ctx, method, url, fh, headers)
+	// 创建请求 body buffer
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	// 添加文件字段
+	part, err := writer.CreateFormFile("file", filePath)
+	if err != nil {
+		return nil, err
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return nil, err
+	}
+
+	// 关闭 multipart writer（必须调用，否则 boundary 不完整）
+	err = writer.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	if headers != nil {
+		headers["Content-Type"] = writer.FormDataContentType()
+	} else {
+		headers = make(map[string]string)
+		headers["Content-Type"] = writer.FormDataContentType()
+	}
+
+	return hc.DoUploadBody(ctx, method, url, &body, headers)
 }
 
 func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
@@ -251,7 +279,6 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
 	}
-	request.Header.Set("Content-Type", "multipart/form-data")
 
 	return hc.simpleRequest(ctx, request, headers)
 }
