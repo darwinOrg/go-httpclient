@@ -225,7 +225,7 @@ func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers ma
 	return hc.requestWithHeaders(ctx, request, headers)
 }
 
-func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method string, url string, filePath string) ([]byte, error) {
+func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, url, filePath string, headers map[string]string) ([]byte, error) {
 	fh, err := os.Open(filePath)
 	if err != nil {
 		dglogger.Errorf(ctx, "error opening file: %s", filePath)
@@ -235,10 +235,10 @@ func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method s
 		_ = fh.Close()
 	}()
 
-	return hc.DoUploadBody(ctx, method, url, fh)
+	return hc.DoUploadBody(ctx, method, url, fh, headers)
 }
 
-func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader) ([]byte, error) {
+func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
 	ctx.SetExtraKeyValue(originalUrl, url)
 	dglogger.Infof(ctx, "upload, url: %s", url)
 
@@ -251,9 +251,9 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
 	}
-	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request.Header.Set("Content-Type", "multipart/form-data")
 
-	return hc.simpleRequest(ctx, request, nil)
+	return hc.simpleRequest(ctx, request, headers)
 }
 
 func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (int, map[string][]string, []byte, error) {
