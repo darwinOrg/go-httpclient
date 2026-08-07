@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	originalUrl                     = "originalUrl"
 	jsonContentType                 = "application/json; charset=utf-8"
 	formUrlEncodedContentType       = "application/x-www-form-urlencoded; charset=utf-8"
 	defaultTimeoutSeconds     int64 = 300
@@ -93,7 +92,6 @@ func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[strin
 }
 
 func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
-	ctx.SetExtraKeyValue(originalUrl, url)
 	if len(params) > 0 {
 		if params != nil && len(params) > 0 {
 			vs := nu.Values{}
@@ -128,7 +126,6 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 }
 
 func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
-	ctx.SetExtraKeyValue(originalUrl, url)
 	var (
 		paramsBytes []byte
 		err         error
@@ -159,7 +156,6 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 }
 
 func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
-	ctx.SetExtraKeyValue(originalUrl, url)
 	var paramsArr []string
 	for k, v := range params {
 		paramsArr = append(paramsArr, k+"="+v)
@@ -184,7 +180,6 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 }
 
 func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
-	ctx.SetExtraKeyValue(originalUrl, url)
 	var (
 		paramsBytes []byte
 		err         error
@@ -215,7 +210,6 @@ func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params an
 }
 
 func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers map[string]string) (*http.Response, error) {
-	ctx.SetExtraKeyValue(originalUrl, url)
 
 	request, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
@@ -267,7 +261,6 @@ func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, 
 }
 
 func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
-	ctx.SetExtraKeyValue(originalUrl, url)
 	dglogger.Infof(ctx, "upload, url: %s", url)
 
 	var (
@@ -294,12 +287,10 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 
 func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request) (*http.Response, error) {
 	start := time.Now()
+	urlPath := request.URL.Path
+
 	if hc.UseMonitor {
-		if ctx.GetExtraValue(originalUrl) != nil {
-			monitor.HttpClientCounter(ctx.GetExtraValue(originalUrl).(string))
-		} else {
-			monitor.HttpClientCounter(request.URL.String())
-		}
+		monitor.HttpClientCounter(urlPath)
 	}
 
 	if hc.FillHeaderWithDgContext {
@@ -317,11 +308,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		if err != nil {
 			e = "true"
 		}
-		if ctx.GetExtraValue(originalUrl) != nil {
-			monitor.HttpClientDuration(ctx.GetExtraValue(originalUrl).(string), e, cost.Milliseconds())
-		} else {
-			monitor.HttpClientDuration(request.URL.String(), e, cost.Milliseconds())
-		}
+		monitor.HttpClientDuration(urlPath, e, cost.Milliseconds())
 	}
 	if err != nil {
 		dglogger.Errorf(ctx, "call url: %s, cost: %v err: %v", request.URL.String(), cost, err)
