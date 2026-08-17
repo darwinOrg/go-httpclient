@@ -339,44 +339,6 @@ func (hc *DgHttpClient) requestWithHeaders(ctx *dgctx.DgContext, request *http.R
 	return hc.DoRequestRaw(ctx, request)
 }
 
-func FillHeaders(request *http.Request, headers map[string]string) {
-	if headers != nil && len(headers) > 0 {
-		for k, v := range headers {
-			request.Header[k] = []string{v}
-		}
-	}
-}
-
-func ExtractResponse(ctx *dgctx.DgContext, response *http.Response) (int, map[string][]string, []byte, error) {
-	data, err := ReadResponse(response)
-	if err != nil {
-		dglogger.Errorf(ctx, "read response error, url: %s, err: %v", response.Request.URL, err)
-	}
-
-	if response.StatusCode >= http.StatusBadRequest {
-		dglogger.Errorf(ctx, "request fail, url: %s，status code: %d", response.Request.URL, response.StatusCode)
-	}
-
-	if response.StatusCode >= http.StatusMultipleChoices {
-		err = nil
-	}
-
-	return response.StatusCode, response.Header, data, err
-}
-
-func ReadResponse(resp *http.Response) ([]byte, error) {
-	if resp == nil {
-		return nil, nil
-	}
-	if resp.Body == nil {
-		return nil, nil
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-	return io.ReadAll(resp.Body)
-}
-
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
 	return DoGetToStruct[result.Result[T]](ctx, url, params, headers)
 }
@@ -431,16 +393,4 @@ func GetHttpClient(ctx *dgctx.DgContext) *DgHttpClient {
 	}
 
 	return httpClient.(*DgHttpClient)
-}
-
-func ConvertResponse2Struct[T any](resp *http.Response) (*T, error) {
-	bs, err := ReadResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-	if len(bs) == 0 {
-		return nil, nil
-	}
-
-	return utils.ConvertJsonBytesToBean[T](bs)
 }
