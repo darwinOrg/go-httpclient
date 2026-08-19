@@ -21,6 +21,7 @@ import (
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
+	"github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/net/http2"
 )
 
@@ -80,6 +81,11 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 		FillHeaderWithDgContext: true,
 		PrintHeader:             true,
 	}
+}
+
+func NewRetryableClient() *DgHttpClient {
+	retryClient := retryablehttp.NewClient()
+	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintHeader: true, PrintLog: true}
 }
 
 func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {

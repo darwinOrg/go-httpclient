@@ -6,12 +6,14 @@ require (
 	github.com/darwinOrg/go-common v0.2.32
 	github.com/darwinOrg/go-logger v0.0.20
 	github.com/darwinOrg/go-monitor v0.0.13
+	github.com/hashicorp/go-retryablehttp v0.7.8
 	golang.org/x/net v0.58.0
 )
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible // indirect
 	github.com/prometheus/client_golang v1.24.1 // indirect
