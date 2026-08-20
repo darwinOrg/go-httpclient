@@ -1,6 +1,7 @@
 package dghttp
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"net/http"
@@ -49,4 +50,9 @@ func GetFullURL(req *http.Request) string {
 	}
 
 	return fmt.Sprintf("%s://%s%s", scheme, host, req.URL.RequestURI())
+}
+
+func SetRequestBody(req *http.Request, body []byte) {
+	req.Body = io.NopCloser(bytes.NewReader(body))
+	req.ContentLength = int64(len(body))
 }
