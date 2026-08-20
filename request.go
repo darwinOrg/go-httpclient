@@ -48,5 +48,5 @@ func GetFullURL(req *http.Request) string {
 		host = req.URL.Host
 	}
 
-	return fmt.Sprintf("%s://%s%s", scheme, host, req.URL.RequestURI())
+	return fmt.Sprintf("%s://%s%s", scheme, host, req.URL.String())
 }
