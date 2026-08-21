@@ -52,6 +52,18 @@ func GetFullURL(req *http.Request) string {
 	return fmt.Sprintf("%s://%s%s", scheme, host, req.URL.RequestURI())
 }
 
+func MustRequestBodyString(req *http.Request) string {
+	contentType := req.Header.Get(contentTypeHeader)
+	if contentType == jsonContentType || contentType == formUrlEncodedContentType {
+		body, _ := io.ReadAll(req.Body)
+		if len(body) > 0 {
+			return string(body)
+		}
+	}
+
+	return ""
+}
+
 func SetRequestBody(req *http.Request, body []byte) {
 	req.Body = io.NopCloser(bytes.NewReader(body))
 	req.ContentLength = int64(len(body))

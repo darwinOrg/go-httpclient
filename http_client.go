@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	contentTypeHeader               = "Content-Type"
 	jsonContentType                 = "application/json; charset=utf-8"
 	formUrlEncodedContentType       = "application/x-www-form-urlencoded; charset=utf-8"
 	defaultTimeoutSeconds     int64 = 300
@@ -146,17 +147,13 @@ func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params a
 		paramsBytes = []byte("{}")
 	}
 
-	if hc.PrintLog && !ctx.NotPrintLog {
-		dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
-	}
-
 	var request *http.Request
 	request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	request.Header.Set("Content-Type", jsonContentType)
+	request.Header.Set(contentTypeHeader, jsonContentType)
 
 	return hc.requestWithHeaders(ctx, request, headers)
 }
@@ -167,9 +164,6 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		paramsArr = append(paramsArr, k+"="+v)
 	}
 	paramsStr := strings.Join(paramsArr, "&")
-	if hc.PrintLog && !ctx.NotPrintLog {
-		dglogger.Infof(ctx, "post request, url: %s, params: %s", url, paramsStr)
-	}
 
 	var (
 		request *http.Request
@@ -180,7 +174,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	request.Header.Set("Content-Type", formUrlEncodedContentType)
+	request.Header.Set(contentTypeHeader, formUrlEncodedContentType)
 
 	return hc.simpleRequest(ctx, request, headers)
 }
@@ -200,23 +194,18 @@ func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params an
 		paramsBytes = []byte("{}")
 	}
 
-	if hc.PrintLog && !ctx.NotPrintLog {
-		dglogger.Infof(ctx, "put request, url: %s, params: %v", url, string(paramsBytes))
-	}
-
 	var request *http.Request
 	request, err = http.NewRequest(http.MethodPut, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	request.Header.Set("Content-Type", jsonContentType)
+	request.Header.Set(contentTypeHeader, jsonContentType)
 
 	return hc.requestWithHeaders(ctx, request, headers)
 }
 
 func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers map[string]string) (*http.Response, error) {
-
 	request, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
@@ -257,18 +246,16 @@ func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, 
 	}
 
 	if headers != nil {
-		headers["Content-Type"] = writer.FormDataContentType()
+		headers[contentTypeHeader] = writer.FormDataContentType()
 	} else {
 		headers = make(map[string]string)
-		headers["Content-Type"] = writer.FormDataContentType()
+		headers[contentTypeHeader] = writer.FormDataContentType()
 	}
 
 	return hc.DoUploadBody(ctx, method, url, &body, headers)
 }
 
 func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
-	dglogger.Infof(ctx, "upload, url: %s", url)
-
 	var (
 		request *http.Request
 		err     error
@@ -298,12 +285,8 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	if hc.UseMonitor {
 		monitor.HttpClientCounter(urlPath)
 	}
-
 	if hc.FillHeaderWithDgContext {
 		FillHeadersWithDgContext(ctx, request.Header)
-	}
-	if hc.PrintHeader {
-		dglogger.Infof(ctx, "httpclient request headers: %v", request.Header)
 	}
 
 	request.Header.Set("User-Agent", "")
@@ -316,11 +299,26 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		}
 		monitor.HttpClientDuration(urlPath, e, cost.Milliseconds())
 	}
+
+	formats := []string{"%s url: %s", "cost: %v"}
+	args := []any{request.Method, request.URL.String(), cost}
+	if hc.PrintHeader {
+		formats = append(formats, "header: %v")
+		args = append(args, request.Header)
+	}
+	bodyString := MustRequestBodyString(request)
+	if bodyString != "" {
+		formats = append(formats, "body: %s")
+		args = append(args, bodyString)
+	}
 	if err != nil {
-		dglogger.Errorf(ctx, "call url: %s, cost: %v err: %v", request.URL.String(), cost, err)
+		formats = append(formats, "err: %v")
+		args = append(args, err)
+		dglogger.Errorf(ctx, strings.Join(formats, " | "), args...)
 		return response, err
-	} else if hc.PrintLog && !ctx.NotPrintLog {
-		dglogger.Infof(ctx, "call url: %s, cost: %v", request.URL.String(), cost)
+	}
+	if hc.PrintLog && !ctx.NotPrintLog {
+		dglogger.Infof(ctx, strings.Join(formats, " | "), args...)
 	}
 
 	if hc.ResponseCallback != nil {
