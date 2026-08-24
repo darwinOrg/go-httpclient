@@ -80,13 +80,12 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 		UseMonitor:              dgsys.IsFormalProfile(),
 		PrintLog:                true,
 		FillHeaderWithDgContext: true,
-		PrintHeader:             true,
 	}
 }
 
 func NewRetryableClient() *DgHttpClient {
 	retryClient := retryablehttp.NewClient()
-	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintHeader: true, PrintLog: true}
+	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintLog: true}
 }
 
 func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
