@@ -53,12 +53,13 @@ func GetFullURL(req *http.Request) string {
 }
 
 func MustRequestBodyString(req *http.Request) string {
-	contentType := req.Header.Get(contentTypeHeader)
-	if contentType == jsonContentType || contentType == formUrlEncodedContentType {
-		body, _ := io.ReadAll(req.Body)
-		if len(body) > 0 {
-			return string(body)
-		}
+	if req.Method == http.MethodGet || req.Method == http.MethodHead {
+		return ""
+	}
+
+	body, _ := io.ReadAll(req.Body)
+	if len(body) > 0 {
+		return string(body)
 	}
 
 	return ""
