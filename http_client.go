@@ -280,6 +280,7 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request) (*http.Response, error) {
 	start := time.Now()
 	urlPath := request.URL.Path
+	bodyString := MustRequestBodyString(request)
 
 	if hc.UseMonitor {
 		monitor.HttpClientCounter(urlPath)
@@ -305,7 +306,6 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 		formats = append(formats, "header: %v")
 		args = append(args, request.Header)
 	}
-	bodyString := MustRequestBodyString(request)
 	if bodyString != "" {
 		formats = append(formats, "body: %s")
 		args = append(args, bodyString)

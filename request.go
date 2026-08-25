@@ -59,6 +59,7 @@ func MustRequestBodyString(req *http.Request) string {
 
 	body, _ := io.ReadAll(req.Body)
 	if len(body) > 0 {
+		SetRequestBody(req, body)
 		return string(body)
 	}
 
