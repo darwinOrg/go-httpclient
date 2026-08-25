@@ -58,8 +58,9 @@ type DgHttpClient struct {
 	HttpClient              *http.Client
 	UseMonitor              bool
 	FillHeaderWithDgContext bool
-	PrintHeader             bool
 	PrintLog                bool
+	PrintHeader             bool
+	PrintBody               bool
 	ResponseCallback        func(ctx *dgctx.DgContext, response *http.Response)
 }
 
@@ -78,14 +79,15 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 			Timeout:   time.Duration(int64(time.Second) * timeoutSeconds),
 		},
 		UseMonitor:              dgsys.IsFormalProfile(),
-		PrintLog:                true,
 		FillHeaderWithDgContext: true,
+		PrintLog:                true,
+		PrintBody:               true,
 	}
 }
 
 func NewRetryableClient() *DgHttpClient {
 	retryClient := retryablehttp.NewClient()
-	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintLog: true}
+	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintLog: true, PrintBody: true}
 }
 
 func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
@@ -280,8 +282,11 @@ func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (
 func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request) (*http.Response, error) {
 	start := time.Now()
 	urlPath := request.URL.Path
-	bodyString := MustRequestBodyString(request)
 
+	var bodyString string
+	if hc.PrintBody {
+		bodyString = MustRequestBodyString(request)
+	}
 	if hc.UseMonitor {
 		monitor.HttpClientCounter(urlPath)
 	}
@@ -302,11 +307,11 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 
 	formats := []string{"%s url: %s", "cost: %v"}
 	args := []any{request.Method, request.URL.String(), cost}
-	if hc.PrintHeader {
+	if hc.PrintHeader && len(request.Header) > 0 {
 		formats = append(formats, "header: %v")
 		args = append(args, request.Header)
 	}
-	if bodyString != "" {
+	if hc.PrintBody && bodyString != "" {
 		formats = append(formats, "body: %s")
 		args = append(args, bodyString)
 	}
