@@ -298,14 +298,10 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	response, err := hc.HttpClient.Do(request)
 	cost := time.Since(start)
 	if hc.UseMonitor {
-		e := "false"
-		if err != nil {
-			e = "true"
-		}
-		monitor.HttpClientDuration(urlPath, e, cost.Milliseconds())
+		monitor.HttpClientDuration(urlPath, utils.IfReturn(err == nil, "false", "true"), cost.Milliseconds())
 	}
 
-	formats := []string{"%s url: %s", "cost: %v"}
+	formats := []string{"%s %s", "cost: %v"}
 	args := []any{request.Method, request.URL.String(), cost}
 	if hc.PrintHeader && len(request.Header) > 0 {
 		formats = append(formats, "header: %v")
