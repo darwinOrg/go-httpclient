@@ -10,7 +10,6 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	nu "net/url"
 	"os"
 	"strings"
 	"time"
@@ -100,22 +99,8 @@ func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[strin
 }
 
 func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
-	if len(params) > 0 {
-		if params != nil && len(params) > 0 {
-			vs := nu.Values{}
-			for k, v := range params {
-				vs.Add(k, v)
-			}
-			url += utils.IfReturn(strings.Contains(url, "?"), "&", "?")
-			url += vs.Encode()
-		}
-	}
-
-	var (
-		request *http.Request
-		err     error
-	)
-	request, err = http.NewRequest(http.MethodGet, url, nil)
+	url = AppendUrlParams(url, params)
+	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -257,11 +242,7 @@ func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, 
 }
 
 func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
-	var (
-		request *http.Request
-		err     error
-	)
-	request, err = http.NewRequest(method, url, body)
+	request, err := http.NewRequest(method, url, body)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err

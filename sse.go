@@ -4,31 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
-	nu "net/url"
-	"strings"
 
 	dgctx "github.com/darwinOrg/go-common/context"
-	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 )
 
 func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
-	if len(params) > 0 {
-		if params != nil && len(params) > 0 {
-			vs := nu.Values{}
-			for k, v := range params {
-				vs.Add(k, v)
-			}
-			url += utils.IfReturn(strings.Contains(url, "?"), "&", "?")
-			url += vs.Encode()
-		}
-	}
-
-	var (
-		request *http.Request
-		err     error
-	)
-	request, err = http.NewRequest(http.MethodGet, url, nil)
+	url = AppendUrlParams(url, params)
+	request, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -46,7 +29,6 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 		dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	dglogger.Infof(ctx, "post request, url: %s, params: %v", url, string(paramsBytes))
 
 	var request *http.Request
 	request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))

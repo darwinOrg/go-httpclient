@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	nu "net/url"
+	"strings"
 
 	dgctx "github.com/darwinOrg/go-common/context"
+	"github.com/darwinOrg/go-common/utils"
 )
 
 func CopyRequest(ctx *dgctx.DgContext, rawReq *http.Request, newUrl string, body io.Reader) (*http.Request, error) {
@@ -69,4 +72,18 @@ func MustRequestBodyString(req *http.Request) string {
 func SetRequestBody(req *http.Request, body []byte) {
 	req.Body = io.NopCloser(bytes.NewReader(body))
 	req.ContentLength = int64(len(body))
+}
+
+func AppendUrlParams(url string, params map[string]string) string {
+	if len(params) == 0 || len(params) == 0 {
+		return url
+	}
+
+	vs := nu.Values{}
+	for k, v := range params {
+		vs.Add(k, v)
+	}
+	url += utils.IfReturn(strings.Contains(url, "?"), "&", "?")
+	url += vs.Encode()
+	return url
 }
