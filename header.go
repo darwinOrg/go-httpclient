@@ -65,6 +65,9 @@ func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {
 	if ctx.Source != "" {
 		header[constants.Source] = []string{ctx.Source}
 	}
+	if ctx.Client != "" {
+		header[constants.Client] = []string{ctx.Client}
+	}
 	if ctx.Since != 0 {
 		header[constants.Since] = []string{strconv.FormatInt(ctx.Since, 10)}
 	}
