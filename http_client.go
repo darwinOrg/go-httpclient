@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"mime/multipart"
 	"net"
@@ -284,7 +283,7 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	}
 
 	formats := []string{"%s %s", "cost: %s"}
-	args := []any{request.Method, request.URL.String(), formatDuration(cost)}
+	args := []any{request.Method, request.URL.String(), utils.SimpleFormatDuration(cost)}
 	if hc.PrintHeader && len(request.Header) > 0 {
 		formats = append(formats, "header: %v")
 		args = append(args, request.Header)
@@ -379,11 +378,4 @@ func GetHttpClient(ctx *dgctx.DgContext) *DgHttpClient {
 	}
 
 	return httpClient.(*DgHttpClient)
-}
-
-func formatDuration(d time.Duration) string {
-	if d >= time.Second {
-		return fmt.Sprintf("%.2fs", d.Seconds())
-	}
-	return fmt.Sprintf("%.2fms", float64(d.Microseconds())/1000)
 }
