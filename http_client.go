@@ -86,6 +86,7 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 
 func NewRetryableClient() *DgHttpClient {
 	retryClient := retryablehttp.NewClient()
+	retryClient.Logger = nil
 	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintLog: true, PrintBody: true}
 }
 
