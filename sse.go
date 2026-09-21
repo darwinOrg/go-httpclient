@@ -1,13 +1,20 @@
 package dghttp
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
+	"time"
 
 	dgctx "github.com/darwinOrg/go-common/context"
 	dglogger "github.com/darwinOrg/go-logger"
 )
+
+var sseDataPrefixBytes = []byte("data: ")
+
+const sseDefaultSleepTime = time.Millisecond * 10
 
 func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
 	url = AppendUrlParams(url, params)
@@ -42,4 +49,23 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	WriteSseHeaders(request)
 
 	return hc.DoRequestRaw(ctx, request)
+}
+
+func HandleSseData(resp *http.Response, handler func(data []byte)) {
+	defer func() { _ = resp.Body.Close() }()
+	reader := bufio.NewReader(resp.Body)
+
+	for {
+		rawLine, readErr := reader.ReadBytes('\n')
+		if readErr == io.EOF {
+			break
+		}
+
+		if !bytes.HasPrefix(rawLine, sseDataPrefixBytes) {
+			continue
+		}
+
+		handler(bytes.TrimPrefix(rawLine, sseDataPrefixBytes))
+		time.Sleep(sseDefaultSleepTime)
+	}
 }
