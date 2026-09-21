@@ -12,7 +12,7 @@ import (
 	dglogger "github.com/darwinOrg/go-logger"
 )
 
-var sseDataPrefixBytes = []byte("data: ")
+var sseDataPrefixBytes = []byte("data:")
 
 const sseDefaultSleepTime = time.Millisecond * 10
 
