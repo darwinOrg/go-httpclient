@@ -65,7 +65,7 @@ func HandleSseData(resp *http.Response, handler func(data []byte)) {
 			continue
 		}
 
-		handler(bytes.TrimPrefix(rawLine, sseDataPrefixBytes))
+		handler(bytes.TrimRight(bytes.TrimPrefix(rawLine, sseDataPrefixBytes), "\r\n"))
 		time.Sleep(sseDefaultSleepTime)
 	}
 }
