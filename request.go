@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	nu "net/url"
+	"sort"
 	"strings"
 
 	dgctx "github.com/darwinOrg/go-common/context"
@@ -86,4 +87,40 @@ func AppendUrlParams(url string, params map[string]string) string {
 	url += utils.IfReturn(strings.Contains(url, "?"), "&", "?")
 	url += vs.Encode()
 	return url
+}
+
+func BuildRequest2CurlParts(request *http.Request) []string {
+	parts := []string{"curl", "-X", bashEscape(request.Method)}
+
+	if request.Method == http.MethodPost && request.Body != nil {
+		body, _ := io.ReadAll(request.Body)
+		if len(body) > 0 {
+			SetRequestBody(request, body)
+			bodyEscaped := bashEscape(string(body))
+			parts = append(parts, "-d", bodyEscaped)
+		}
+	}
+
+	var keys []string
+	for k := range request.Header {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		parts = append(parts, "-H", bashEscape(fmt.Sprintf("%s: %s", k, strings.Join(request.Header[k], " "))))
+	}
+
+	requestUrl := request.URL.String()
+	parts = append(parts, bashEscape(requestUrl))
+
+	return parts
+}
+
+func ConvertRequest2Curl(request *http.Request) string {
+	return strings.Join(BuildRequest2CurlParts(request), " ")
+}
+
+func bashEscape(str string) string {
+	return `'` + strings.Replace(str, `'`, `'\''`, -1) + `'`
 }
