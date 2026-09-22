@@ -2,16 +2,45 @@ package dghttp
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	nu "net/url"
-	"sort"
 	"strings"
 
 	dgctx "github.com/darwinOrg/go-common/context"
 	"github.com/darwinOrg/go-common/utils"
+	dglogger "github.com/darwinOrg/go-logger"
 )
+
+func BuildJsonRequest(ctx *dgctx.DgContext, method, url string, params any, headers map[string]string) (*http.Request, error) {
+	var (
+		paramsBytes []byte
+		err         error
+	)
+	if params != nil {
+		paramsBytes, err = json.Marshal(params)
+		if err != nil {
+			dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
+			return nil, err
+		}
+	} else {
+		paramsBytes = []byte("{}")
+	}
+
+	var request *http.Request
+	request, err = http.NewRequest(method, url, bytes.NewBuffer(paramsBytes))
+	if err != nil {
+		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
+		return nil, err
+	}
+
+	FillHeaders(request, headers)
+	request.Header.Set(contentTypeHeader, jsonContentType)
+
+	return request, nil
+}
 
 func CopyRequest(ctx *dgctx.DgContext, rawReq *http.Request, newUrl string, body io.Reader) (*http.Request, error) {
 	if newUrl == "" {
@@ -76,51 +105,22 @@ func SetRequestBody(req *http.Request, body []byte) {
 }
 
 func AppendUrlParams(url string, params map[string]string) string {
-	if len(params) == 0 || len(params) == 0 {
+	if len(params) == 0 {
 		return url
+	}
+
+	return url + utils.IfReturn(strings.Contains(url, "?"), "&", "?") + ConvertUrlParams(params)
+}
+
+func ConvertUrlParams(params map[string]string) string {
+	if len(params) == 0 {
+		return ""
 	}
 
 	vs := nu.Values{}
 	for k, v := range params {
 		vs.Add(k, v)
 	}
-	url += utils.IfReturn(strings.Contains(url, "?"), "&", "?")
-	url += vs.Encode()
-	return url
-}
 
-func BuildRequest2CurlParts(request *http.Request) []string {
-	parts := []string{"curl", "-X", bashEscape(request.Method)}
-
-	if request.Method == http.MethodPost && request.Body != nil {
-		body, _ := io.ReadAll(request.Body)
-		if len(body) > 0 {
-			SetRequestBody(request, body)
-			bodyEscaped := bashEscape(string(body))
-			parts = append(parts, "-d", bodyEscaped)
-		}
-	}
-
-	var keys []string
-	for k := range request.Header {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		parts = append(parts, "-H", bashEscape(fmt.Sprintf("%s: %s", k, strings.Join(request.Header[k], " "))))
-	}
-
-	requestUrl := request.URL.String()
-	parts = append(parts, bashEscape(requestUrl))
-
-	return parts
-}
-
-func ConvertRequest2Curl(request *http.Request) string {
-	return strings.Join(BuildRequest2CurlParts(request), " ")
-}
-
-func bashEscape(str string) string {
-	return `'` + strings.Replace(str, `'`, `'\''`, -1) + `'`
+	return vs.Encode()
 }

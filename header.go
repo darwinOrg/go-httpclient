@@ -10,6 +10,12 @@ import (
 	dgsys "github.com/darwinOrg/go-common/sys"
 )
 
+const (
+	contentTypeHeader         = "Content-Type"
+	jsonContentType           = "application/json; charset=utf-8"
+	formUrlEncodedContentType = "application/x-www-form-urlencoded; charset=utf-8"
+)
+
 func FillHeaders(request *http.Request, headers map[string]string) {
 	if headers != nil && len(headers) > 0 {
 		for k, v := range headers {

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"errors"
 	"io"
 	"mime/multipart"
@@ -25,12 +24,9 @@ import (
 )
 
 const (
-	contentTypeHeader               = "Content-Type"
-	jsonContentType                 = "application/json; charset=utf-8"
-	formUrlEncodedContentType       = "application/x-www-form-urlencoded; charset=utf-8"
-	defaultTimeoutSeconds     int64 = 300
-	useHttp11                       = "use_http11"
-	httpClientKey                   = "httpClient"
+	defaultTimeoutSeconds int64 = 300
+	useHttp11                   = "use_http11"
+	httpClientKey               = "httpClient"
 )
 
 var (
@@ -107,7 +103,8 @@ func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[st
 		return nil, err
 	}
 
-	return hc.requestWithHeaders(ctx, request, headers)
+	FillHeaders(request, headers)
+	return hc.DoRequestRaw(ctx, request)
 }
 
 func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any, headers map[string]string) ([]byte, error) {
@@ -120,76 +117,40 @@ func (hc *DgHttpClient) DoPostJson(ctx *dgctx.DgContext, url string, params any,
 }
 
 func (hc *DgHttpClient) DoPostJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
-	var (
-		paramsBytes []byte
-		err         error
-	)
-	if params != nil {
-		paramsBytes, err = json.Marshal(params)
-		if err != nil {
-			dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
-			return nil, err
-		}
-	} else {
-		paramsBytes = []byte("{}")
-	}
-
-	var request *http.Request
-	request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	request, err := BuildJsonRequest(ctx, http.MethodPost, url, params, headers)
 	if err != nil {
-		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
-	request.Header.Set(contentTypeHeader, jsonContentType)
 
-	return hc.requestWithHeaders(ctx, request, headers)
+	return hc.DoRequestRaw(ctx, request)
 }
 
-func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
+func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
+	request, err := BuildJsonRequest(ctx, http.MethodPut, url, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return hc.DoRequestRaw(ctx, request)
+}
+
+func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, params, headers map[string]string) ([]byte, error) {
 	var paramsArr []string
 	for k, v := range params {
 		paramsArr = append(paramsArr, k+"="+v)
 	}
 	paramsStr := strings.Join(paramsArr, "&")
 
-	var (
-		request *http.Request
-		err     error
-	)
-	request, err = http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
+	request, err := http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
 	}
+	FillHeaders(request, headers)
 	request.Header.Set(contentTypeHeader, formUrlEncodedContentType)
 
-	return hc.simpleRequest(ctx, request, headers)
-}
-
-func (hc *DgHttpClient) DoPutJsonRaw(ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*http.Response, error) {
-	var (
-		paramsBytes []byte
-		err         error
-	)
-	if params != nil {
-		paramsBytes, err = json.Marshal(params)
-		if err != nil {
-			dglogger.Errorf(ctx, "json marshal error, url: %s, params: %v, err: %v", url, params, err)
-			return nil, err
-		}
-	} else {
-		paramsBytes = []byte("{}")
-	}
-
-	var request *http.Request
-	request, err = http.NewRequest(http.MethodPut, url, bytes.NewBuffer(paramsBytes))
-	if err != nil {
-		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
-		return nil, err
-	}
-	request.Header.Set(contentTypeHeader, jsonContentType)
-
-	return hc.requestWithHeaders(ctx, request, headers)
+	_, _, data, err := hc.DoRequest(ctx, request)
+	return data, err
 }
 
 func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers map[string]string) (*http.Response, error) {
@@ -199,7 +160,8 @@ func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers ma
 		return nil, err
 	}
 
-	return hc.requestWithHeaders(ctx, request, headers)
+	FillHeaders(request, headers)
+	return hc.DoRequestRaw(ctx, request)
 }
 
 func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, url, filePath string, headers map[string]string) ([]byte, error) {
@@ -249,7 +211,9 @@ func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url st
 		return nil, err
 	}
 
-	return hc.simpleRequest(ctx, request, headers)
+	FillHeaders(request, headers)
+	_, _, data, err := hc.DoRequest(ctx, request)
+	return data, err
 }
 
 func (hc *DgHttpClient) DoRequest(ctx *dgctx.DgContext, request *http.Request) (int, map[string][]string, []byte, error) {
@@ -308,21 +272,6 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	}
 
 	return response, err
-}
-
-func (hc *DgHttpClient) simpleRequest(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) ([]byte, error) {
-	resp, err := hc.requestWithHeaders(ctx, request, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	_, _, body, err := ExtractResponse(ctx, resp)
-	return body, err
-}
-
-func (hc *DgHttpClient) requestWithHeaders(ctx *dgctx.DgContext, request *http.Request, headers map[string]string) (*http.Response, error) {
-	FillHeaders(request, headers)
-	return hc.DoRequestRaw(ctx, request)
 }
 
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
