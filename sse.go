@@ -3,6 +3,7 @@ package dghttp
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -36,8 +37,7 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 		return nil, err
 	}
 
-	var request *http.Request
-	request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	request, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
@@ -50,9 +50,8 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	return hc.DoRequestRaw(ctx, request)
 }
 
-func HandleSseData(resp *http.Response, sleepTime time.Duration, maxTimes int, handler func(data []byte)) {
+func HandleSseData(resp *http.Response, maxTimes int, readTimeout, sleepTime time.Duration, handler func(data []byte)) {
 	defer func() { _ = resp.Body.Close() }()
-	reader := bufio.NewReader(resp.Body)
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -60,24 +59,58 @@ func HandleSseData(resp *http.Response, sleepTime time.Duration, maxTimes int, h
 		}
 	}()
 
+	scanner := bufio.NewScanner(resp.Body)
+	// 设置最大缓冲区大小，防止单行数据过大导致崩溃（SSE 数据有时会很长）
+	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
+
 	times := 0
 	for times < maxTimes {
-		rawLine, readErr := reader.ReadBytes('\n')
-		if readErr == io.EOF {
-			break
+		// 1. 在循环内部创建带有超时的 Context，确保每次读取都有独立的超时时间
+		ctx, cancel := context.WithTimeout(context.Background(), readTimeout)
+
+		// 2. 使用 channel 和 select 来实现带有超时的读取
+		scanChan := make(chan bool, 1)
+		go func() {
+			defer cancel() // 读取完成后取消 context，释放资源
+			scanChan <- scanner.Scan()
+		}()
+
+		select {
+		case <-ctx.Done():
+			// 读取超时，说明服务端可能卡住了，直接退出循环
+			log.Printf("HandleSseData read timeout, exiting. Total times: %d\n", times)
+			return
+		case success := <-scanChan:
+			if !success {
+				// 读取结束或发生错误
+				if err := scanner.Err(); err != nil && err != io.EOF {
+					log.Printf("HandleSseData scanner error: %v\n", err)
+				}
+				return
+			}
 		}
 
+		rawLine := scanner.Bytes()
+
+		// 3. 处理空行（SSE 协议中通常用空行表示事件结束）
 		if len(rawLine) == 0 {
 			time.Sleep(sleepTime)
 			times++
 			continue
 		}
 
+		// 4. 处理 data 前缀
 		if !bytes.HasPrefix(rawLine, sseDataPrefixBytes) {
+			// 如果不是 data: 开头，可能是 comment 或 event 类型，根据需求决定是否跳过
 			continue
 		}
 
-		handler(bytes.TrimRight(bytes.TrimPrefix(rawLine, sseDataPrefixBytes), "\r\n"))
+		// 提取数据并去除右侧的换行符/空白符
+		data := bytes.TrimRight(bytes.TrimPrefix(rawLine, sseDataPrefixBytes), "\r\n")
+		if len(data) > 0 {
+			handler(data)
+		}
+
 		time.Sleep(sleepTime)
 		times++
 	}
