@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"time"
 
@@ -13,8 +14,6 @@ import (
 )
 
 var sseDataPrefixBytes = []byte("data:")
-
-const sseDefaultSleepTime = time.Millisecond * 10
 
 func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
 	url = AppendUrlParams(url, params)
@@ -51,14 +50,27 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	return hc.DoRequestRaw(ctx, request)
 }
 
-func HandleSseData(resp *http.Response, handler func(data []byte)) {
+func HandleSseData(resp *http.Response, sleepTime time.Duration, maxTimes int, handler func(data []byte)) {
 	defer func() { _ = resp.Body.Close() }()
 	reader := bufio.NewReader(resp.Body)
 
-	for {
+	defer func() {
+		if err := recover(); err != nil {
+			log.Printf("HandleSseData panic: %v\n", err)
+		}
+	}()
+
+	times := 0
+	for times < maxTimes {
 		rawLine, readErr := reader.ReadBytes('\n')
 		if readErr == io.EOF {
 			break
+		}
+
+		if len(rawLine) == 0 {
+			time.Sleep(sleepTime)
+			times++
+			continue
 		}
 
 		if !bytes.HasPrefix(rawLine, sseDataPrefixBytes) {
@@ -66,6 +78,9 @@ func HandleSseData(resp *http.Response, handler func(data []byte)) {
 		}
 
 		handler(bytes.TrimRight(bytes.TrimPrefix(rawLine, sseDataPrefixBytes), "\r\n"))
-		time.Sleep(sseDefaultSleepTime)
+		time.Sleep(sleepTime)
+		times++
 	}
+
+	log.Printf("HandleSseData finished, total times: %d\n", times)
 }
