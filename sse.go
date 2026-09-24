@@ -52,31 +52,29 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	return hc.DoRequestRaw(ctx, request)
 }
 
-func HandleSseData(resp *http.Response, handler func(data string)) error {
-	defer func() { _ = resp.Body.Close() }()
-	reader := bufio.NewReader(resp.Body)
+func HandleSseData(resp *http.Response, handler func(data string)) {
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
 
-	for {
-		rawLine, readErr := reader.ReadString('\n')
-		if readErr != nil {
-			if readErr == io.EOF {
-				return nil
-			}
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Split(bufio.ScanLines)
 
-			return readErr
-		}
+	for scanner.Scan() {
+		line := scanner.Text()
 
-		if !strings.HasPrefix(rawLine, sseDataPrefix) {
+		if !strings.HasPrefix(line, sseDataPrefix) {
 			continue
 		}
 
-		data := strings.TrimRight(strings.TrimPrefix(rawLine, sseDataPrefix), "\r\n")
+		data := strings.TrimSpace(strings.TrimPrefix(line, sseDataPrefix))
 		if data == "" {
 			continue
 		}
 
 		if data == sseDone {
-			return nil
+			return
 		}
 
 		handler(data)
