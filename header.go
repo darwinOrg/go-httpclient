@@ -17,7 +17,7 @@ const (
 )
 
 func FillHeaders(request *http.Request, headers map[string]string) {
-	if headers != nil && len(headers) > 0 {
+	if len(headers) > 0 {
 		for k, v := range headers {
 			request.Header[k] = []string{v}
 		}
@@ -83,7 +83,7 @@ func FillHeadersWithDgContext(ctx *dgctx.DgContext, header http.Header) {
 }
 
 func WriteHeaders(request *http.Request, headers map[string]string) {
-	if headers != nil && len(headers) > 0 {
+	if len(headers) > 0 {
 		for k, v := range headers {
 			request.Header[k] = []string{v}
 		}

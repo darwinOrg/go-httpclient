@@ -2,12 +2,10 @@ package dghttp
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"errors"
 	"io"
 	"mime/multipart"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -19,7 +17,6 @@ import (
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -34,14 +31,11 @@ var (
 		IdleConnTimeout: time.Duration(int64(time.Second) * defaultTimeoutSeconds),
 	}
 
-	Http2Transport = &http2.Transport{
-		// So http2.Transport doesn't complain the URL scheme isn't 'https'
-		AllowHTTP: true,
-		// Pretend we are dialing a TLS endpoint. (Note, we ignore the passed tls.Config)
-		DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-			return net.Dial(network, addr)
-		},
-	}
+	// Http2Transport 提供 h2c（明文 HTTP/2，prior knowledge）能力。
+	// Go 1.24+ 标准库已原生支持 h2c，x/net/http2.Transport 随之废弃
+	// （其 DialTLSContext / TLSClientConfig 等字段均标记 Deprecated），
+	// 因此改用 http.Transport + Protocols 实现，行为与旧实现一致。
+	Http2Transport = newH2cTransport()
 
 	Client11         = NewHttpClient(HttpTransport, defaultTimeoutSeconds)
 	Client2          = NewHttpClient(Http2Transport, defaultTimeoutSeconds)
@@ -59,6 +53,26 @@ type DgHttpClient struct {
 	// RetryTimeout 是一次调用（含全部重试）的总预算，0 表示不额外限制。
 	// 由 NewRetryableClientWith 根据 RetryConfig.MaxElapsedTime 注入。
 	RetryTimeout time.Duration
+}
+
+// newH2cTransport 构造一个等价于旧 http2.Transport{AllowHTTP:true,
+// DialTLSContext: net.Dial} 的标准库 Transport：
+//   - http:// URL 走明文 HTTP/2（h2c prior knowledge）
+//   - https:// URL 走标准 TLS + ALPN 协商 h2（旧实现绕过 TLS，属于缺陷，
+//     此处修正；依赖该缺陷的内网明文 https 场景应改用 http:// URL）
+//
+// 关键：Protocols 必须同时关闭 HTTP1 并开启 UnencryptedHTTP2，
+// 否则 http:// URL 会回落到 HTTP/1.1，失去 h2c 语义。
+func newH2cTransport() *http.Transport {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(false)
+	protocols.SetHTTP2(true)
+	protocols.SetUnencryptedHTTP2(true)
+	return &http.Transport{
+		Protocols: protocols,
+		// 与 HttpTransport 保持一致：内网服务常用自签证书。
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 }
 
 func DefaultHttpClient() *DgHttpClient {
@@ -276,47 +290,82 @@ func (hc *DgHttpClient) DoRequestRaw(ctx *dgctx.DgContext, request *http.Request
 	return response, err
 }
 
+// ---------------------------------------------------------------- 自有泛型方法（Go 1.27+ 方法类型参数）
+// 这七个方法挂在 *DgHttpClient 上，使用调用方持有的客户端实例发起请求并解析响应。
+// 方法接收者决定连接池 / 超时 / 重试策略；ctx 仍用于日志、header 注入与链路追踪。
+
+func (hc *DgHttpClient) DoGetToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*T, error) {
+	resp, err := hc.DoGet(ctx, url, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.ConvertJsonBytesToBean[T](resp)
+}
+
+func (hc *DgHttpClient) DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
+	return hc.DoGetToStruct[result.Result[T]](ctx, url, params, headers)
+}
+
+func (hc *DgHttpClient) DoGetToResultML[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.ResultML[T], error) {
+	return hc.DoGetToStruct[result.ResultML[T]](ctx, url, params, headers)
+}
+
+func (hc *DgHttpClient) DoPostJsonToStruct[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*T, error) {
+	resp, err := hc.DoPostJson(ctx, url, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.ConvertJsonBytesToBean[T](resp)
+}
+
+func (hc *DgHttpClient) DoPostJsonToResult[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*result.Result[T], error) {
+	return hc.DoPostJsonToStruct[result.Result[T]](ctx, url, params, headers)
+}
+
+func (hc *DgHttpClient) DoPostJsonToResultML[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*result.ResultML[T], error) {
+	return hc.DoPostJsonToStruct[result.ResultML[T]](ctx, url, params, headers)
+}
+
+func (hc *DgHttpClient) DoPostFormUrlEncodedToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*T, error) {
+	resp, err := hc.DoPostFormUrlEncoded(ctx, url, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	return utils.ConvertJsonBytesToBean[T](resp)
+}
+
+// ---------------------------------------------------------------- 包级兼容包装
+// 保留原有签名，委托给 ctx 上绑定的客户端，兼容既有跨仓库调用。
+
 func DoGetToResult[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.Result[T], error) {
-	return DoGetToStruct[result.Result[T]](ctx, url, params, headers)
+	return GetHttpClient(ctx).DoGetToResult[T](ctx, url, params, headers)
 }
 
 func DoGetToResultML[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*result.ResultML[T], error) {
-	return DoGetToStruct[result.ResultML[T]](ctx, url, params, headers)
+	return GetHttpClient(ctx).DoGetToResultML[T](ctx, url, params, headers)
 }
 
 func DoGetToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*T, error) {
-	resp, err := GetHttpClient(ctx).DoGet(ctx, url, params, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	return utils.ConvertJsonBytesToBean[T](resp)
+	return GetHttpClient(ctx).DoGetToStruct[T](ctx, url, params, headers)
 }
 
 func DoPostJsonToResult[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*result.Result[T], error) {
-	return DoPostJsonToStruct[result.Result[T]](ctx, url, params, headers)
+	return GetHttpClient(ctx).DoPostJsonToResult[T](ctx, url, params, headers)
 }
 
 func DoPostJsonToResultML[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*result.ResultML[T], error) {
-	return DoPostJsonToStruct[result.ResultML[T]](ctx, url, params, headers)
+	return GetHttpClient(ctx).DoPostJsonToResultML[T](ctx, url, params, headers)
 }
 
 func DoPostJsonToStruct[T any](ctx *dgctx.DgContext, url string, params any, headers map[string]string) (*T, error) {
-	resp, err := GetHttpClient(ctx).DoPostJson(ctx, url, params, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	return utils.ConvertJsonBytesToBean[T](resp)
+	return GetHttpClient(ctx).DoPostJsonToStruct[T](ctx, url, params, headers)
 }
 
 func DoPostFormUrlEncodedToStruct[T any](ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*T, error) {
-	resp, err := GetHttpClient(ctx).DoPostFormUrlEncoded(ctx, url, params, headers)
-	if err != nil {
-		return nil, err
-	}
-
-	return utils.ConvertJsonBytesToBean[T](resp)
+	return GetHttpClient(ctx).DoPostFormUrlEncodedToStruct[T](ctx, url, params, headers)
 }
 
 func SetHttpClient(ctx *dgctx.DgContext, httpClient *DgHttpClient) {

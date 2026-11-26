@@ -1,13 +1,12 @@
 module github.com/darwinOrg/go-httpclient
 
-go 1.25.0
+go 1.27.0
 
 require (
 	github.com/darwinOrg/go-common v0.2.39
 	github.com/darwinOrg/go-logger v0.0.25
 	github.com/darwinOrg/go-monitor v0.0.13
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	golang.org/x/net v0.58.0
 )
 
 require (
@@ -22,7 +21,6 @@ require (
 	github.com/prometheus/procfs v0.21.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.41.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 )
