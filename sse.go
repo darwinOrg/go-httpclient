@@ -19,7 +19,7 @@ const (
 
 func (hc *DgHttpClient) SseGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
 	url = AppendUrlParams(url, params)
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	request, err := newRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -39,7 +39,7 @@ func (hc *DgHttpClient) SsePostJson(ctx *dgctx.DgContext, url string, params any
 	}
 
 	var request *http.Request
-	request, err = http.NewRequest(http.MethodPost, url, bytes.NewBuffer(paramsBytes))
+	request, err = newRequest(ctx, http.MethodPost, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err

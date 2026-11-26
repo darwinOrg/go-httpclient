@@ -19,7 +19,6 @@ import (
 	"github.com/darwinOrg/go-common/utils"
 	dglogger "github.com/darwinOrg/go-logger"
 	"github.com/darwinOrg/go-monitor"
-	"github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/net/http2"
 )
 
@@ -57,6 +56,9 @@ type DgHttpClient struct {
 	PrintHeader             bool
 	PrintBody               bool
 	ResponseCallback        func(ctx *dgctx.DgContext, response *http.Response)
+	// RetryTimeout 是一次调用（含全部重试）的总预算，0 表示不额外限制。
+	// 由 NewRetryableClientWith 根据 RetryConfig.MaxElapsedTime 注入。
+	RetryTimeout time.Duration
 }
 
 func DefaultHttpClient() *DgHttpClient {
@@ -80,10 +82,10 @@ func NewHttpClient(roundTripper http.RoundTripper, timeoutSeconds int64) *DgHttp
 	}
 }
 
+// NewRetryableClient 创建一个带重试能力的客户端，保留原有签名与默认行为，
+// 内部改用带抖动退避、Retry-After 与总预算的策略。
 func NewRetryableClient() *DgHttpClient {
-	retryClient := retryablehttp.NewClient()
-	retryClient.Logger = nil
-	return &DgHttpClient{HttpClient: retryClient.StandardClient(), UseMonitor: dgsys.IsFormalProfile(), PrintLog: true, PrintBody: true}
+	return NewRetryableClientWithOptions()
 }
 
 func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) ([]byte, error) {
@@ -97,7 +99,7 @@ func (hc *DgHttpClient) DoGet(ctx *dgctx.DgContext, url string, params map[strin
 
 func (hc *DgHttpClient) DoGetRaw(ctx *dgctx.DgContext, url string, params map[string]string, headers map[string]string) (*http.Response, error) {
 	url = AppendUrlParams(url, params)
-	request, err := http.NewRequest(http.MethodGet, url, nil)
+	request, err := newRequest(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -141,7 +143,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 	}
 	paramsStr := strings.Join(paramsArr, "&")
 
-	request, err := http.NewRequest(http.MethodPost, url, strings.NewReader(paramsStr))
+	request, err := newRequest(ctx, http.MethodPost, url, strings.NewReader(paramsStr))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
@@ -154,7 +156,7 @@ func (hc *DgHttpClient) DoPostFormUrlEncoded(ctx *dgctx.DgContext, url string, p
 }
 
 func (hc *DgHttpClient) DoDeleteRaw(ctx *dgctx.DgContext, url string, headers map[string]string) (*http.Response, error) {
-	request, err := http.NewRequest(http.MethodDelete, url, nil)
+	request, err := newRequest(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err
@@ -205,7 +207,7 @@ func (hc *DgHttpClient) DoUploadBodyFromLocalFile(ctx *dgctx.DgContext, method, 
 }
 
 func (hc *DgHttpClient) DoUploadBody(ctx *dgctx.DgContext, method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
-	request, err := http.NewRequest(method, url, body)
+	request, err := newRequest(ctx, method, url, body)
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, err: %v", url, err)
 		return nil, err

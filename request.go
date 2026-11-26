@@ -14,6 +14,18 @@ import (
 	dglogger "github.com/darwinOrg/go-logger"
 )
 
+// newRequest 创建请求并尽可能绑定 DgContext 中的标准 context。
+// 这样上游取消/超时能贯穿到 net/http 与 retryablehttp 的重试循环；
+// 未设置 inner context 时退化为 http.NewRequest，保持旧调用方行为不变。
+func newRequest(ctx *dgctx.DgContext, method, url string, body io.Reader) (*http.Request, error) {
+	if ctx != nil {
+		if inner := ctx.GetInnerContext(); inner != nil {
+			return http.NewRequestWithContext(inner, method, url, body)
+		}
+	}
+	return http.NewRequest(method, url, body)
+}
+
 func BuildJsonRequest(ctx *dgctx.DgContext, method, url string, params any, headers map[string]string) (*http.Request, error) {
 	var (
 		paramsBytes []byte
@@ -30,7 +42,7 @@ func BuildJsonRequest(ctx *dgctx.DgContext, method, url string, params any, head
 	}
 
 	var request *http.Request
-	request, err = http.NewRequest(method, url, bytes.NewBuffer(paramsBytes))
+	request, err = newRequest(ctx, method, url, bytes.NewBuffer(paramsBytes))
 	if err != nil {
 		dglogger.Errorf(ctx, "new request error, url: %s, params: %v, err: %v", url, params, err)
 		return nil, err
